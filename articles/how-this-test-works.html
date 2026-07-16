@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How This Memory Test Works (and How Difficulty Scales) — chimpmemory.com</title>
+<meta name="description" content="A look under the hood of all three modes: how scoring, best-score tracking, and history work, and exactly how difficulty ramps up each round in the Chimp Test, Sequence Memory, and Number Memory.">
+<link rel="canonical" href="https://chimpmemory.com/articles/how-this-test-works.html">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/styles.css">
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="chimpmemory.com home">
+      <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--accent-dim)"/>
+        <rect x="6" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+        <rect x="18" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="6" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="18" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+      </svg>
+      <span class="brand-name">Chimp<span class="brand-accent">Memory</span></span>
+    </a>
+  </div>
+</header>
+<main class="container-narrow">
+  <h1>How This Memory Test Works (and How Difficulty Scales)</h1>
+
+  <p>All three games on <a href="/">this site</a> — the Chimp Test, Sequence Memory, and Number Memory — share the same underlying design: a small set of pure, deterministic logic functions decide what happens each round, and everything you see on screen is just a rendering of that logic. This page walks through exactly how each mode generates its rounds, scores your performance, and scales difficulty as you improve.</p>
+
+  <h2>The shared foundations: history and tiers</h2>
+  <p>Every mode keeps two pieces of state in your browser's <code>localStorage</code>: a single best score, and a rolling history of your last 10 attempts, each stored with a score and a timestamp. When a round ends, the new result is pushed onto the front of the history array and the list is capped at 10 entries — older attempts simply roll off the end. Nothing is ever uploaded anywhere; the storage keys (like <code>cmt-chimp-best</code> or <code>cmt-number-history</code>) live only in your browser, on your device, which is also why clearing your browser data resets your progress.</p>
+  <p>After every round, your score is looked up against an ordered list of score ranges — a &ldquo;tier table&rdquo; — to produce the rating text you see (&ldquo;Sharp memory,&rdquo; &ldquo;Chimp-level or better,&rdquo; and so on). Each mode has its own table tuned to that mode's typical score range, but the lookup mechanism is identical: walk the list in order and return the label attached to the first range your score falls inside.</p>
+
+  <h2>Chimp Test: layout generation and grid scaling</h2>
+  <p>The Chimp Test starts each session at 4 tiles and adds exactly one more tile after every successfully completed round — there's no cap, so a long streak keeps climbing indefinitely until you misclick. Before each round, the board size is decided based on how many tiles need to fit: the grid always keeps at least a handful of empty cells so the numbered tiles aren't crammed edge to edge, using roughly the smallest square-ish grid that comfortably holds the tile count plus a margin of blank cells. As your tile count grows, the grid grows with it, which is part of why later rounds feel harder in two ways at once — more numbers to remember, spread across more possible positions.</p>
+  <p>Within that grid, the tile positions themselves are chosen by shuffling every available cell and taking the first however-many needed, then numbering them 1 through however many tiles that round has. Each click is checked against what number you're supposed to hit next: if it matches, the round continues (and the round-completion check fires once you've correctly hit the final number); if it doesn't, the round ends immediately. There's no partial credit and no do-overs mid-round — a single wrong click, or a click on an empty cell, ends things right there, which is why the game keeps track of the highest count you <em>completed</em>, not merely attempted.</p>
+
+  <h2>Sequence Memory: growing sequences and step-by-step checking</h2>
+  <p>Sequence Memory works differently: instead of a static layout you memorize all at once, a sequence is built by repeatedly appending one random tile (chosen from a fixed 3×3, 9-tile board) to the end of a growing list. Each round, the whole sequence so far is played back for you — every tile in the list lights up in order with a short pause between each — and then it's your turn to reproduce the exact same order by clicking.</p>
+  <p>Your input is checked one step at a time rather than all at once: after each click, the test compares only the newest click against the same position in the target sequence. A wrong click at any position ends the round immediately, so the game can tell you exactly where things went wrong rather than only at the very end. If you reproduce the entire sequence correctly, one more random tile gets appended and the (now slightly longer) sequence plays back again. Because sequence length only ever grows by one at a time and never resets mid-session, your score is simply the length of the longest sequence you fully reproduced before a slip.</p>
+
+  <h2>Number Memory: reveal timing and digit generation</h2>
+  <p>Number Memory starts at 3 digits and, like the other two modes, adds one digit each time you answer correctly. The number itself is generated digit by digit at random, with one small rule: the very first digit is never zero, so a 4-digit round always looks like a genuine 4-digit number rather than one with a leading zero that would visually read as shorter.</p>
+  <p>The interesting scaling detail is the reveal timer. Longer numbers are shown on screen for longer — the reveal duration is a fixed base amount of time plus an additional stretch of time for every extra digit in that round. This is deliberate: giving a 3-digit round and a 12-digit round the identical half-second flash would make the longer rounds nearly impossible regardless of skill, while giving every round the same generous multi-second window would make short rounds trivially easy. Scaling the reveal time with digit count keeps the actual difficulty curve tied to memory capacity rather than to display speed. Once the reveal window closes, the number is replaced with masked dots and an input field appears; your typed answer is compared against the target as plain text (after trimming stray whitespace), and any mismatch — including getting the digit count wrong — ends the round.</p>
+
+  <h2>Why the logic lives separately from the page</h2>
+  <p>All of the scoring and generation functions described above — the grid-sizing math, the click-checking logic, the sequence and number generation, the tier lookups — are written as small, self-contained functions with no dependency on the browser's <code>document</code> object. That separation exists so the core game logic can be sanity-checked independently of any on-screen rendering, the same way you'd test a calculator's math without needing to render its display. The DOM-handling code — building the tile grid, wiring up click handlers, updating the on-screen level and best-score readouts — sits in a clearly separated section that only runs once an actual page has loaded, and it's a thin layer on top of the logic above rather than something that duplicates it.</p>
+  <p>If you're wondering how your own scores compare to typical results, see our <a href="/articles/what-is-a-good-memory-score.html">guide to realistic benchmarks</a> for all three modes. If you'd like to actually raise your scores rather than just understand them, our <a href="/articles/how-to-improve-working-memory.html">guide to improving working memory</a> covers techniques that meaningfully help. And if you're curious where the Chimp Test's name and format actually came from, <a href="/articles/history-of-the-chimp-memory-test.html">the real research behind it</a> is worth a read.</p>
+  <p>Otherwise, the best way to understand any of this is to watch it happen: <a href="/">play a round</a> and pay attention to how the grid or reveal window changes as your streak grows.</p>
+
+  <h2>Keep reading</h2>
+  <ul>
+    <li><a href="/articles/what-is-a-good-memory-score.html">What's a good memory score? Realistic benchmarks for all three modes</a></li>
+    <li><a href="/articles/how-to-improve-working-memory.html">How to improve your working memory: chunking, visualization, and realistic expectations</a></li>
+    <li><a href="/articles/history-of-the-chimp-memory-test.html">The history of the Chimp Memory Test: Ayumu, Kyoto University, and the eidetic memory debate</a></li>
+    <li><a href="/">Take the memory test</a></li>
+  </ul>
+</main>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>© <span id="year"></span> chimpmemory.com</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
+<script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+</body>
+</html>

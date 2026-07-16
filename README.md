@@ -10,6 +10,8 @@ Each mode tracks a best score and a rolling history of your last 10 attempts (bo
 
 Everything runs client-side — no backend, no build step, no uploads. Deployed as static files on GitHub Pages.
 
+An `articles/` directory holds four original long-form articles (benchmarks, technique guide, the Ayumu/Kyoto University history behind the "chimp test" name, and how the scoring/difficulty logic works) linked from a "Learn more" section on the homepage — an AdSense content-depth pass to support the tool with genuine written content.
+
 ## Local development
 
 No build tooling required. Serve the folder with any static file server, e.g.:
