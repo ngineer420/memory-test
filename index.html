@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chimp Memory Test — Free Working Memory Games</title>
+<meta name="description" content="Play the Chimp Memory Test — the working-memory game chimpanzees famously beat humans at — plus Sequence Memory and Number Memory. Free, instant, no sign-up.">
+<link rel="canonical" href="https://chimpmemory.com/">
+<meta name="theme-color" content="#0d1210">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Chimp Memory Test — Free Working Memory Games">
+<meta property="og:description" content="Three quick memory games: the Chimp Test, Sequence Memory, and Number Memory. Free, instant, runs entirely in your browser.">
+<meta property="og:url" content="https://chimpmemory.com/">
+<meta property="og:image" content="https://chimpmemory.com/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chimp Memory Test — Free Working Memory Games">
+<meta name="twitter:description" content="Three quick memory games: the Chimp Test, Sequence Memory, and Number Memory. Free, instant, runs entirely in your browser.">
+<meta name="twitter:image" content="https://chimpmemory.com/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/styles.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Chimp Memory Test",
+  "url": "https://chimpmemory.com/",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free browser-based memory game bundle: the Chimp Test, Sequence Memory, and Number Memory."
+}
+</script>
+
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="chimpmemory.com home">
+      <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--accent-dim)"/>
+        <rect x="6" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+        <rect x="18" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="6" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="18" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+      </svg>
+      <span class="brand-name">Chimp<span class="brand-accent">Memory</span></span>
+    </a>
+    <div class="header-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <h1>How's your memory, really?</h1>
+        <p>Three quick tests of working memory — starting with the one chimpanzees are famous for beating humans at.</p>
+        <p class="trust-line">No sign-up<span class="dot">•</span>Runs 100% in your browser<span class="dot">•</span>Free forever</p>
+      </div>
+      <div class="hero-demo">
+        <div class="ghost-grid" aria-hidden="true">
+          <span class="ghost-tile" style="--d:0s">1</span>
+          <span class="ghost-tile" style="--d:.3s">2</span>
+          <span class="ghost-tile" style="--d:.6s">3</span>
+          <span class="ghost-tile" style="--d:.9s">4</span>
+          <span class="ghost-tile" style="--d:1.2s">5</span>
+          <span class="ghost-tile" style="--d:1.5s">6</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div role="tablist" class="tabbar" aria-label="Memory game mode">
+    <button role="tab" id="tab-chimp" aria-controls="panel-chimp" aria-selected="true" class="tab-btn" type="button">Chimp Test</button>
+    <button role="tab" id="tab-sequence" aria-controls="panel-sequence" aria-selected="false" class="tab-btn" type="button" tabindex="-1">Sequence Memory</button>
+    <button role="tab" id="tab-number" aria-controls="panel-number" aria-selected="false" class="tab-btn" type="button" tabindex="-1">Number Memory</button>
+  </div>
+
+  <!-- ===================== CHIMP TEST ===================== -->
+  <section role="tabpanel" id="panel-chimp" aria-labelledby="tab-chimp" class="tab-panel active">
+    <div class="game-wrap">
+      <div class="panel game-panel" id="chimp-game-panel">
+        <div class="game-status">
+          <div class="status-item"><span class="status-label">Level</span><span class="status-value" id="chimp-level">1</span></div>
+          <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="chimp-best">0</span></div>
+        </div>
+        <p class="game-instructions" id="chimp-instructions">Click the tiles in order, 1 → 4. The instant you click "1", every number vanishes — finish the round purely from memory.</p>
+        <div class="chimp-board" id="chimp-board" style="--cols:5;--rows:5;"></div>
+        <div class="game-controls">
+          <button type="button" class="primary" id="chimp-start">Start</button>
+        </div>
+      </div>
+      <div class="panel results-panel" id="chimp-results" hidden>
+        <h2>Round over</h2>
+        <p class="score-line">You correctly cleared <strong id="chimp-final-level"></strong> tiles.</p>
+        <p class="tier-line" id="chimp-tier"></p>
+        <div class="game-controls" style="margin-top:0;">
+          <button type="button" class="primary" id="chimp-restart">Play again</button>
+        </div>
+        <div class="history" id="chimp-history">
+          <h3>Last 10 attempts</h3>
+          <ol class="history-list" id="chimp-history-list"></ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SEQUENCE MEMORY ===================== -->
+  <section role="tabpanel" id="panel-sequence" aria-labelledby="tab-sequence" class="tab-panel" hidden>
+    <div class="game-wrap">
+      <div class="panel game-panel" id="sequence-game-panel">
+        <div class="game-status">
+          <div class="status-item"><span class="status-label">Level</span><span class="status-value" id="sequence-level">0</span></div>
+          <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="sequence-best">0</span></div>
+        </div>
+        <p class="game-instructions" id="sequence-instructions">Watch the tiles light up, then repeat the sequence by clicking them in the same order.</p>
+        <div class="seq-board" id="sequence-board"></div>
+        <div class="game-controls">
+          <button type="button" class="primary" id="sequence-start">Start</button>
+        </div>
+      </div>
+      <div class="panel results-panel" id="sequence-results" hidden>
+        <h2>Round over</h2>
+        <p class="score-line">You reproduced a sequence <strong id="sequence-final-level"></strong> tiles long.</p>
+        <p class="tier-line" id="sequence-tier"></p>
+        <div class="game-controls" style="margin-top:0;">
+          <button type="button" class="primary" id="sequence-restart">Play again</button>
+        </div>
+        <div class="history" id="sequence-history">
+          <h3>Last 10 attempts</h3>
+          <ol class="history-list" id="sequence-history-list"></ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== NUMBER MEMORY ===================== -->
+  <section role="tabpanel" id="panel-number" aria-labelledby="tab-number" class="tab-panel" hidden>
+    <div class="game-wrap">
+      <div class="panel game-panel" id="number-game-panel">
+        <div class="game-status">
+          <div class="status-item"><span class="status-label">Digits</span><span class="status-value" id="number-digits">3</span></div>
+          <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="number-best">0</span></div>
+        </div>
+        <p class="game-instructions" id="number-instructions">A number will flash briefly. Memorize it, then type it back once it disappears.</p>
+        <div class="number-stage">
+          <div class="number-display" id="number-display">—</div>
+          <form class="answer-field" id="number-form" hidden>
+            <label for="number-input" class="visually-hidden">Your answer</label>
+            <input type="text" id="number-input" inputmode="numeric" autocomplete="off" placeholder="Type the number">
+            <button type="submit" class="primary">Submit</button>
+          </form>
+        </div>
+        <div class="game-controls">
+          <button type="button" class="primary" id="number-start">Start</button>
+        </div>
+      </div>
+      <div class="panel results-panel" id="number-results" hidden>
+        <h2>Round over</h2>
+        <p class="score-line">You correctly recalled <strong id="number-final-digits"></strong> digits.</p>
+        <p class="tier-line" id="number-tier"></p>
+        <div class="game-controls" style="margin-top:0;">
+          <button type="button" class="primary" id="number-restart">Play again</button>
+        </div>
+        <div class="history" id="number-history">
+          <h3>Last 10 attempts</h3>
+          <ol class="history-list" id="number-history-list"></ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-narrow about-section">
+    <h2>About these games</h2>
+    <p>The <strong>Chimp Test</strong> recreates a well-known working-memory task from primate cognition research: young chimpanzees at Kyoto University's Primate Research Institute were found to briefly outperform human adults at recalling the position of numbers that vanish the moment you start clicking. It's a genuinely hard test of your visuospatial working memory — most people plateau well before double digits.</p>
+    <p><strong>Sequence Memory</strong> tests a different kind of recall: how long a pattern you can hold and reproduce in order. <strong>Number Memory</strong> strips it down further, testing pure digit-span recall — the same skill behind remembering a phone number just long enough to dial it.</p>
+    <p>All three games run entirely client-side in your browser. Nothing you do here is uploaded or stored anywhere except your own device's local storage, which is what powers your best score and history.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>© <span id="year"></span> chimpmemory.com</div>
+    <div class="footer-links">
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/app.js"></script>
+</body>
+</html>
