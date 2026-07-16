@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Number Memory Test — Free Online Digit Span Game</title>
+<meta name="description" content="Take the Number Memory Test: a number flashes briefly, then you type it back from memory. Each success adds a digit. Test your digit span free — no sign-up.">
+<link rel="canonical" href="https://chimpmemory.com/number-memory-test.html">
+<meta name="theme-color" content="#0d1210">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Number Memory Test — Free Online Digit Span Game">
+<meta property="og:description" content="A number flashes briefly, then you type it back from memory. Each success adds a digit. Free, runs entirely in your browser.">
+<meta property="og:url" content="https://chimpmemory.com/number-memory-test.html">
+<meta property="og:image" content="https://chimpmemory.com/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Number Memory Test — Free Online Digit Span Game">
+<meta name="twitter:description" content="A number flashes briefly, then you type it back from memory. Free, runs entirely in your browser.">
+<meta name="twitter:image" content="https://chimpmemory.com/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/styles.css">
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="chimpmemory.com home">
+      <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--accent-dim)"/>
+        <rect x="6" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+        <rect x="18" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="6" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="18" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+      </svg>
+      <span class="brand-name">Chimp<span class="brand-accent">Memory</span></span>
+    </a>
+    <div class="header-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="solo-head">
+    <h1>Number Memory Test</h1>
+    <p class="solo-intro">A number flashes on screen, then disappears — type it back from memory. Each correct answer adds another digit. It measures pure digit span, the same skill behind holding a phone number just long enough to dial it.</p>
+  </div>
+
+  <div class="game-wrap">
+    <div class="panel game-panel" id="number-game-panel">
+      <div class="game-status">
+        <div class="status-item"><span class="status-label">Digits</span><span class="status-value" id="number-digits">3</span></div>
+        <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="number-best">0</span></div>
+      </div>
+      <p class="game-instructions" id="number-instructions">A number will flash briefly. Memorize it, then type it back once it disappears.</p>
+      <div class="number-stage">
+        <div class="number-display" id="number-display">—</div>
+        <form class="answer-field" id="number-form" hidden>
+          <label for="number-input" class="visually-hidden">Your answer</label>
+          <input type="text" id="number-input" inputmode="numeric" autocomplete="off" placeholder="Type the number">
+          <button type="submit" class="primary">Submit</button>
+        </form>
+      </div>
+      <div class="game-controls">
+        <button type="button" class="primary" id="number-start">Start</button>
+      </div>
+    </div>
+    <div class="panel results-panel" id="number-results" hidden>
+      <h2>Round over</h2>
+      <p class="score-line">You correctly recalled <strong id="number-final-digits"></strong> digits.</p>
+      <p class="tier-line" id="number-tier"></p>
+      <div class="game-controls" style="margin-top:0;">
+        <button type="button" class="primary" id="number-restart">Play again</button>
+      </div>
+      <div class="history" id="number-history">
+        <h3>Last 10 attempts</h3>
+        <ol class="history-list" id="number-history-list"></ol>
+      </div>
+    </div>
+  </div>
+
+  <nav class="solo-nav" aria-label="More memory tests">
+    <h2>More memory tests</h2>
+    <ul class="test-links">
+      <li><a href="/">All five tests (hub)</a></li>
+      <li><a href="/chimp-test.html">Chimp Test</a></li>
+      <li><a href="/sequence-memory-test.html">Sequence Memory Test</a></li>
+      <li><a href="/visual-memory-test.html">Visual Memory Test</a></li>
+      <li><a href="/verbal-memory-test.html">Verbal Memory Test</a></li>
+    </ul>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>© <span id="year"></span> chimpmemory.com</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/app.js"></script>
+</body>
+</html>

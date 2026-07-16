@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual Memory Test — Free Online Spatial Memory Game</title>
+<meta name="description" content="Take the Visual Memory Test: tiles flash on a grid, then you click exactly those from memory. The grid grows each level; three lives. Free, instant, no sign-up.">
+<link rel="canonical" href="https://chimpmemory.com/visual-memory-test.html">
+<meta name="theme-color" content="#0d1210">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Visual Memory Test — Free Online Spatial Memory Game">
+<meta property="og:description" content="Tiles flash on a grid, then you click exactly those from memory. The grid grows each level; three lives. Free, runs entirely in your browser.">
+<meta property="og:url" content="https://chimpmemory.com/visual-memory-test.html">
+<meta property="og:image" content="https://chimpmemory.com/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Visual Memory Test — Free Online Spatial Memory Game">
+<meta name="twitter:description" content="Tiles flash on a grid, then you click exactly those from memory. Free, runs entirely in your browser.">
+<meta name="twitter:image" content="https://chimpmemory.com/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/styles.css">
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="chimpmemory.com home">
+      <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--accent-dim)"/>
+        <rect x="6" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+        <rect x="18" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="6" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="18" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+      </svg>
+      <span class="brand-name">Chimp<span class="brand-accent">Memory</span></span>
+    </a>
+    <div class="header-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="solo-head">
+    <h1>Visual Memory Test</h1>
+    <p class="solo-intro">A set of tiles flashes on the grid — memorize them, then click exactly those tiles once the board resets. Every level you clear grows the grid and adds another tile. You get three lives; how far can your spatial memory take you?</p>
+  </div>
+
+  <div class="game-wrap">
+    <div class="panel game-panel" id="visual-game-panel">
+      <div class="game-status">
+        <div class="status-item"><span class="status-label">Level</span><span class="status-value" id="visual-level">1</span></div>
+        <div class="status-item"><span class="status-label">Lives</span><span class="status-value" id="visual-lives">3</span></div>
+        <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="visual-best">0</span></div>
+      </div>
+      <p class="game-instructions" id="visual-instructions">A set of tiles will flash. Memorize them, then click exactly those tiles once they reset. Three lives; the grid grows each level.</p>
+      <div class="visual-board" id="visual-board"></div>
+      <div class="game-controls">
+        <button type="button" class="primary" id="visual-start">Start</button>
+      </div>
+    </div>
+    <div class="panel results-panel" id="visual-results" hidden>
+      <h2>Round over</h2>
+      <p class="score-line">You reached level <strong id="visual-final-level"></strong>.</p>
+      <p class="tier-line" id="visual-tier"></p>
+      <div class="game-controls" style="margin-top:0;">
+        <button type="button" class="primary" id="visual-restart">Play again</button>
+      </div>
+      <div class="history" id="visual-history">
+        <h3>Last 10 attempts</h3>
+        <ol class="history-list" id="visual-history-list"></ol>
+      </div>
+    </div>
+  </div>
+
+  <nav class="solo-nav" aria-label="More memory tests">
+    <h2>More memory tests</h2>
+    <ul class="test-links">
+      <li><a href="/">All five tests (hub)</a></li>
+      <li><a href="/chimp-test.html">Chimp Test</a></li>
+      <li><a href="/sequence-memory-test.html">Sequence Memory Test</a></li>
+      <li><a href="/number-memory-test.html">Number Memory Test</a></li>
+      <li><a href="/verbal-memory-test.html">Verbal Memory Test</a></li>
+    </ul>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>© <span id="year"></span> chimpmemory.com</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/app.js"></script>
+</body>
+</html>
