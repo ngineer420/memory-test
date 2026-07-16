@@ -176,6 +176,10 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
 .container-narrow h2 { font-size: 17px; margin-top: 32px; }
 .container-narrow p, .container-narrow li { color: var(--text-dim); }
 
+.faq-item { margin-bottom: 18px; }
+.faq-item h3 { font-size: 15px; margin: 0 0 6px; }
+.faq-item p { margin: 0; color: var(--text-dim); }
+
 /* ---------- hero ---------- */
 .hero { padding: 36px 0 30px; }
 .hero-inner {
