@@ -180,6 +180,100 @@ function numberRatingTier(digits) {
   return lookupTier(NUMBER_TIERS, digits);
 }
 
+/* ---- Visual Memory ---- */
+
+/**
+ * Side length of the (square) grid for a given level. Grows one cell every few
+ * levels and is capped so the board never becomes absurdly large.
+ */
+function visualGridSize(level) {
+  const side = 3 + Math.floor((level - 1) / 3);
+  return Math.min(side, 7);
+}
+
+/** How many tiles flash at a given level (level 1 = 3 tiles). */
+function visualTileCount(level) {
+  return level + 2;
+}
+
+/**
+ * Build a level: choose visualTileCount(level) distinct cells to flash out of a
+ * square grid sized by visualGridSize(level). Returns
+ * { side, totalCells, litCells } where litCells is an array of 0-indexed cells
+ * (row-major). The lit count is clamped so it never exceeds the cell count.
+ */
+function visualGenerateLayout(level, rng) {
+  const useRng = rng || Math.random;
+  const side = visualGridSize(level);
+  const totalCells = side * side;
+  let count = visualTileCount(level);
+  if (count > totalCells) count = totalCells;
+  const cells = [];
+  for (let i = 0; i < totalCells; i++) cells.push(i);
+  const litCells = shuffle(cells, useRng).slice(0, count);
+  return { side: side, totalCells: totalCells, litCells: litCells };
+}
+
+const VISUAL_TIERS = [
+  { min: 0, max: 2, label: "Just warming up" },
+  { min: 3, max: 4, label: "Average recall" },
+  { min: 5, max: 7, label: "Sharp memory" },
+  { min: 8, max: 10, label: "Excellent — most people plateau here" },
+  { min: 11, max: 14, label: "Exceptional — rare human territory" },
+  { min: 15, max: Infinity, label: "Photographic-level recall" },
+];
+
+function visualRatingTier(level) {
+  return lookupTier(VISUAL_TIERS, level);
+}
+
+/* ---- Verbal Memory ---- */
+
+/**
+ * Pick the next word to show. `usedList` is every word already shown at least
+ * once. With probability `reuseProb` (when possible) a word that's already been
+ * seen is shown again; otherwise a fresh word from `pool` is chosen. Falls back
+ * to reuse when the pool is exhausted, and to a fresh word when nothing has been
+ * shown yet. Returns { word, isSeen }.
+ */
+function verbalPickWord(pool, usedList, rng, reuseProb) {
+  const useRng = rng || Math.random;
+  const p = typeof reuseProb === "number" ? reuseProb : 0.42;
+  const used = usedList || [];
+  const usedSet = {};
+  for (let i = 0; i < used.length; i++) usedSet[used[i]] = true;
+  const unused = pool.filter(function (w) {
+    return !usedSet[w];
+  });
+  const canReuse = used.length > 0;
+  const mustReuse = unused.length === 0;
+  const reuse = canReuse && (mustReuse || useRng() < p);
+  if (reuse) {
+    const w = used[Math.floor(useRng() * used.length)];
+    return { word: w, isSeen: true };
+  }
+  const nw = unused[Math.floor(useRng() * unused.length)];
+  return { word: nw, isSeen: false };
+}
+
+/** True if the SEEN/NEW answer matches reality. `answer` is "seen" or "new". */
+function verbalCheckAnswer(wasSeen, answer) {
+  return (answer === "seen") === Boolean(wasSeen);
+}
+
+const VERBAL_TIERS = [
+  { min: 0, max: 14, label: "Just warming up" },
+  { min: 15, max: 29, label: "Average recall" },
+  { min: 30, max: 49, label: "Sharp memory" },
+  { min: 50, max: 74, label: "Excellent — most people plateau here" },
+  { min: 75, max: 99, label: "Exceptional — rare human territory" },
+  { min: 100, max: Infinity, label: "Savant-level recall" },
+];
+
+function verbalRatingTier(score) {
+  return lookupTier(VERBAL_TIERS, score);
+}
+
 /* ===================================================================== */
 /* ============================= DOM WIRING ============================= */
 /* ===================================================================== */
@@ -208,16 +302,16 @@ if (typeof document !== "undefined") {
     /* ---- tabs ---- */
 
     (function initTabs() {
-      const tabs = [
-        document.getElementById("tab-chimp"),
-        document.getElementById("tab-sequence"),
-        document.getElementById("tab-number"),
-      ];
-      const panels = {
-        "tab-chimp": document.getElementById("panel-chimp"),
-        "tab-sequence": document.getElementById("panel-sequence"),
-        "tab-number": document.getElementById("panel-number"),
-      };
+      const tablist = document.querySelector('[role="tablist"]');
+      if (!tablist) return; // standalone single-test pages have no tab bar
+      const tabs = Array.prototype.slice.call(
+        tablist.querySelectorAll('[role="tab"]')
+      );
+      if (!tabs.length) return;
+
+      function panelFor(tab) {
+        return document.getElementById(tab.getAttribute("aria-controls"));
+      }
 
       function select(tab, opts) {
         const focus = !opts || opts.focus !== false;
@@ -225,8 +319,11 @@ if (typeof document !== "undefined") {
           const active = t === tab;
           t.setAttribute("aria-selected", String(active));
           t.tabIndex = active ? 0 : -1;
-          panels[t.id].hidden = !active;
-          panels[t.id].classList.toggle("active", active);
+          const panel = panelFor(t);
+          if (panel) {
+            panel.hidden = !active;
+            panel.classList.toggle("active", active);
+          }
         });
         try {
           sessionStorage.setItem("cmt:tab", tab.id);
@@ -262,7 +359,8 @@ if (typeof document !== "undefined") {
       }
     })();
 
-    document.getElementById("year").textContent = new Date().getFullYear();
+    const yearEl = document.getElementById("year");
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
 
     /* ---- shared storage helpers ---- */
 
@@ -347,6 +445,7 @@ if (typeof document !== "undefined") {
       const tierEl = document.getElementById("chimp-tier");
       const restartBtn = document.getElementById("chimp-restart");
       const historyList = document.getElementById("chimp-history-list");
+      if (!board) return; // markup for this test isn't on the page
 
       const BEST_KEY = "cmt-chimp-best";
       const HISTORY_KEY = "cmt-chimp-history";
@@ -480,6 +579,7 @@ if (typeof document !== "undefined") {
       const tierEl = document.getElementById("sequence-tier");
       const restartBtn = document.getElementById("sequence-restart");
       const historyList = document.getElementById("sequence-history-list");
+      if (!board) return; // markup for this test isn't on the page
 
       const BEST_KEY = "cmt-sequence-best";
       const HISTORY_KEY = "cmt-sequence-history";
@@ -617,6 +717,7 @@ if (typeof document !== "undefined") {
       const form = document.getElementById("number-form");
       const input = document.getElementById("number-input");
       const answerField = form;
+      if (!display) return; // markup for this test isn't on the page
 
       const BEST_KEY = "cmt-number-best";
       const HISTORY_KEY = "cmt-number-history";
@@ -696,6 +797,287 @@ if (typeof document !== "undefined") {
 
       renderHistoryList(historyList, getHistory(HISTORY_KEY), "digits");
     })();
+
+    /* ======================== VISUAL MEMORY ======================== */
+
+    (function visualTool() {
+      const board = document.getElementById("visual-board");
+      const levelEl = document.getElementById("visual-level");
+      const livesEl = document.getElementById("visual-lives");
+      const bestEl = document.getElementById("visual-best");
+      const instructions = document.getElementById("visual-instructions");
+      const startBtn = document.getElementById("visual-start");
+      const gamePanel = document.getElementById("visual-game-panel");
+      const resultsPanel = document.getElementById("visual-results");
+      const finalLevelEl = document.getElementById("visual-final-level");
+      const tierEl = document.getElementById("visual-tier");
+      const restartBtn = document.getElementById("visual-restart");
+      const historyList = document.getElementById("visual-history-list");
+      if (!board) return; // markup for this test isn't on the page
+
+      const BEST_KEY = "cmt-visual-best";
+      const HISTORY_KEY = "cmt-visual-history";
+      const START_LEVEL = 1;
+      const LIVES = 3;
+      const FLASH_MS = 900;
+
+      let level = START_LEVEL;
+      let lives = LIVES;
+      let round = null; // { side, totalCells, litCells }
+      let litSet = {};
+      let remaining = 0;
+      let picked = {};
+      let accepting = false;
+
+      bestEl.textContent = getBest(BEST_KEY);
+
+      function sleep(ms) {
+        return new Promise(function (resolve) {
+          setTimeout(resolve, ms);
+        });
+      }
+
+      function buildBoard() {
+        board.innerHTML = "";
+        board.style.setProperty("--cols", round.side);
+        board.style.setProperty("--rows", round.side);
+        for (let cell = 0; cell < round.totalCells; cell++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "visual-cell";
+          btn.dataset.cell = String(cell);
+          btn.addEventListener("click", onCellClick);
+          board.appendChild(btn);
+        }
+      }
+
+      function cellEl(cell) {
+        return board.querySelector('.visual-cell[data-cell="' + cell + '"]');
+      }
+
+      async function startLevel() {
+        round = visualGenerateLayout(level);
+        litSet = {};
+        round.litCells.forEach(function (c) {
+          litSet[c] = true;
+        });
+        remaining = round.litCells.length;
+        picked = {};
+        accepting = false;
+        levelEl.textContent = String(level);
+        livesEl.textContent = String(lives);
+        startBtn.hidden = true;
+        resultsPanel.hidden = true;
+        gamePanel.hidden = false;
+        buildBoard();
+        instructions.textContent = "Memorize the highlighted tiles…";
+        await sleep(350);
+        round.litCells.forEach(function (c) {
+          const el = cellEl(c);
+          if (el) el.classList.add("flash");
+        });
+        await sleep(FLASH_MS);
+        round.litCells.forEach(function (c) {
+          const el = cellEl(c);
+          if (el) el.classList.remove("flash");
+        });
+        instructions.textContent = "Now click the tiles that flashed.";
+        accepting = true;
+      }
+
+      function onCellClick(e) {
+        if (!accepting) return;
+        const cell = parseInt(e.currentTarget.dataset.cell, 10);
+        if (picked[cell]) return; // ignore repeat clicks on the same tile
+        picked[cell] = true;
+        const el = e.currentTarget;
+        if (litSet[cell]) {
+          el.classList.add("correct");
+          remaining -= 1;
+          if (remaining === 0) {
+            accepting = false;
+            level += 1;
+            instructions.textContent = "Level cleared!";
+            setTimeout(startLevel, 550);
+          }
+        } else {
+          el.classList.add("wrong");
+          lives -= 1;
+          livesEl.textContent = String(lives);
+          if (lives <= 0) {
+            accepting = false;
+            endGame();
+          }
+        }
+      }
+
+      function endGame() {
+        // Reveal any lit tiles the player hadn't found yet.
+        round.litCells.forEach(function (c) {
+          const el = cellEl(c);
+          if (el && !el.classList.contains("correct")) el.classList.add("missed");
+        });
+        const reached = level; // the level they were on when they ran out of lives
+        const best = Math.max(getBest(BEST_KEY), reached);
+        setBest(BEST_KEY, best);
+        const history = pushHistory(getHistory(HISTORY_KEY), {
+          score: reached,
+          date: new Date().toISOString(),
+        });
+        setHistory(HISTORY_KEY, history);
+        bestEl.textContent = String(best);
+
+        finalLevelEl.textContent = String(reached);
+        tierEl.textContent = visualRatingTier(reached);
+        renderHistoryList(historyList, history, "level");
+
+        setTimeout(function () {
+          gamePanel.hidden = true;
+          resultsPanel.hidden = false;
+        }, 700);
+      }
+
+      function resetAndStart() {
+        level = START_LEVEL;
+        lives = LIVES;
+        startLevel();
+      }
+
+      startBtn.addEventListener("click", resetAndStart);
+      restartBtn.addEventListener("click", resetAndStart);
+
+      renderHistoryList(historyList, getHistory(HISTORY_KEY), "level");
+    })();
+
+    /* ======================== VERBAL MEMORY ======================== */
+
+    (function verbalTool() {
+      const wordEl = document.getElementById("verbal-word");
+      const scoreEl = document.getElementById("verbal-score");
+      const livesEl = document.getElementById("verbal-lives");
+      const bestEl = document.getElementById("verbal-best");
+      const instructions = document.getElementById("verbal-instructions");
+      const startBtn = document.getElementById("verbal-start");
+      const gamePanel = document.getElementById("verbal-game-panel");
+      const resultsPanel = document.getElementById("verbal-results");
+      const finalScoreEl = document.getElementById("verbal-final-score");
+      const tierEl = document.getElementById("verbal-tier");
+      const restartBtn = document.getElementById("verbal-restart");
+      const historyList = document.getElementById("verbal-history-list");
+      const buttons = document.getElementById("verbal-buttons");
+      const seenBtn = document.getElementById("verbal-seen");
+      const newBtn = document.getElementById("verbal-new");
+      if (!wordEl) return; // markup for this test isn't on the page
+
+      const BEST_KEY = "cmt-verbal-best";
+      const HISTORY_KEY = "cmt-verbal-history";
+      const LIVES = 3;
+      const POOL = [
+        "apple", "river", "candle", "market", "planet", "shadow", "bridge", "forest",
+        "silver", "window", "garden", "engine", "pocket", "marble", "throne", "pillow",
+        "anchor", "velvet", "meadow", "copper", "lantern", "harbor", "pepper", "ribbon",
+        "saddle", "cactus", "puzzle", "tunnel", "orchid", "cobweb", "dagger", "ferry",
+        "glacier", "hazard", "island", "jacket", "kettle", "ladder", "magnet", "napkin",
+        "orbit", "parlor", "quartz", "raisin", "sonnet", "temple", "utopia", "violin",
+        "walnut", "yonder", "zephyr", "acorn", "beacon", "cinder", "dapper", "ember",
+        "fable", "gravel", "hollow", "ingot", "jasper", "kernel", "linen", "mosaic",
+        "nectar", "outpost", "prairie", "quiver", "rustle", "satchel", "timber", "umber",
+        "vessel", "willow", "yeoman", "zenith", "amber", "basil", "crimson", "denim",
+        "eagle", "flint", "gopher", "hearth", "ivory", "jungle", "kiosk", "lilac",
+        "mango", "nomad", "onyx", "prism", "quilt", "raven", "sable", "tulip",
+        "urchin", "vapor", "wharf", "xenon", "yacht", "zebra", "almond", "bison",
+        "clover", "dune", "echo", "fjord", "grotto", "heron", "igloo", "jetty",
+        "koala", "lagoon", "mural", "needle", "otter", "petal", "quokka", "reef",
+        "spruce", "trout", "udder", "vixen", "wagon", "yolk", "zircon", "badge",
+        "cove", "drift", "flare", "gorge", "husk", "inlet", "juror", "knoll",
+      ];
+
+      let score = 0;
+      let lives = LIVES;
+      let used = [];
+      let currentSeen = false;
+      let accepting = false;
+
+      bestEl.textContent = getBest(BEST_KEY);
+
+      function nextWord() {
+        const pick = verbalPickWord(POOL, used, Math.random, 0.42);
+        currentSeen = pick.isSeen;
+        if (!pick.isSeen) used.push(pick.word);
+        wordEl.textContent = pick.word;
+        wordEl.classList.remove("verbal-correct", "verbal-wrong");
+        accepting = true;
+      }
+
+      function answer(choice) {
+        if (!accepting) return;
+        accepting = false;
+        const correct = verbalCheckAnswer(currentSeen, choice);
+        if (correct) {
+          score += 1;
+          scoreEl.textContent = String(score);
+          wordEl.classList.add("verbal-correct");
+          setTimeout(nextWord, 220);
+        } else {
+          lives -= 1;
+          livesEl.textContent = String(lives);
+          wordEl.classList.add("verbal-wrong");
+          if (lives <= 0) {
+            endGame();
+          } else {
+            setTimeout(nextWord, 320);
+          }
+        }
+      }
+
+      function startGame() {
+        score = 0;
+        lives = LIVES;
+        used = [];
+        scoreEl.textContent = "0";
+        livesEl.textContent = String(lives);
+        startBtn.hidden = true;
+        resultsPanel.hidden = true;
+        gamePanel.hidden = false;
+        buttons.hidden = false;
+        instructions.textContent =
+          "Have you seen this word before, this game? Mark it SEEN or NEW.";
+        nextWord();
+      }
+
+      function endGame() {
+        accepting = false;
+        buttons.hidden = true;
+        const best = Math.max(getBest(BEST_KEY), score);
+        setBest(BEST_KEY, best);
+        const history = pushHistory(getHistory(HISTORY_KEY), {
+          score: score,
+          date: new Date().toISOString(),
+        });
+        setHistory(HISTORY_KEY, history);
+        bestEl.textContent = String(best);
+
+        finalScoreEl.textContent = String(score);
+        tierEl.textContent = verbalRatingTier(score);
+        renderHistoryList(historyList, history, "words");
+
+        setTimeout(function () {
+          gamePanel.hidden = true;
+          resultsPanel.hidden = false;
+        }, 500);
+      }
+
+      seenBtn.addEventListener("click", function () {
+        answer("seen");
+      });
+      newBtn.addEventListener("click", function () {
+        answer("new");
+      });
+      startBtn.addEventListener("click", startGame);
+      restartBtn.addEventListener("click", startGame);
+
+      renderHistoryList(historyList, getHistory(HISTORY_KEY), "words");
+    })();
   })();
 }
 
@@ -717,5 +1099,12 @@ if (typeof module !== "undefined" && module.exports) {
     numberGenerate: numberGenerate,
     numberCheckAnswer: numberCheckAnswer,
     numberRatingTier: numberRatingTier,
+    visualGridSize: visualGridSize,
+    visualTileCount: visualTileCount,
+    visualGenerateLayout: visualGenerateLayout,
+    visualRatingTier: visualRatingTier,
+    verbalPickWord: verbalPickWord,
+    verbalCheckAnswer: verbalCheckAnswer,
+    verbalRatingTier: verbalRatingTier,
   };
 }

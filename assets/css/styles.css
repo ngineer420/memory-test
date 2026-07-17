@@ -362,6 +362,56 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
 .answer-field { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .answer-field input { text-align: center; width: 220px; }
 
+/* ---------- visual memory board ---------- */
+.visual-board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
+  grid-template-rows: repeat(var(--rows, 3), 1fr);
+  gap: 8px;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+.visual-cell {
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: background .12s ease, transform .1s ease, box-shadow .12s ease;
+}
+.visual-cell:hover { transform: scale(1.03); }
+.visual-cell.flash {
+  background: #f7fbff;
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px var(--accent-dim), 0 0 14px 1px rgba(255, 255, 255, .35);
+}
+.visual-cell.correct { background: var(--accent); border-color: var(--accent); }
+.visual-cell.wrong { background: var(--danger); border-color: var(--danger); }
+.visual-cell.missed {
+  background: var(--bg-inset);
+  border-color: var(--accent-dim);
+  box-shadow: inset 0 0 0 2px var(--accent-dim);
+}
+
+/* ---------- verbal memory ---------- */
+.verbal-stage { text-align: center; padding: 24px 0 8px; }
+.verbal-word {
+  font-size: clamp(28px, 7vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  min-height: 1.3em;
+  color: var(--text);
+  transition: color .12s ease;
+}
+.verbal-word.verbal-correct { color: var(--accent-dim); }
+:root[data-theme="dark"] .verbal-word.verbal-correct { color: var(--accent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .verbal-word.verbal-correct { color: var(--accent); } }
+.verbal-word.verbal-wrong { color: var(--danger); }
+.verbal-controls { margin-top: 22px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.verbal-controls button { padding: 12px 32px; font-size: 15px; min-width: 120px; }
+
 /* ---------- results ---------- */
 .results-panel h2 { margin-top: 0; font-size: 18px; }
 .score-line { font-size: 16px; }
@@ -407,6 +457,15 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
 .about-section { padding-top: 10px; }
 .about-section h2 { font-size: 18px; margin-top: 30px; }
 .about-section p { color: var(--text-dim); max-width: 68ch; }
+
+/* ---------- dedicated single-test pages ---------- */
+.solo-head { max-width: 640px; margin: 30px auto 22px; text-align: center; }
+.solo-head h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; letter-spacing: -0.02em; }
+.solo-head .solo-intro { color: var(--text-dim); font-size: 15.5px; margin: 0 auto; max-width: 52ch; }
+.solo-nav { max-width: 640px; margin: 30px auto 0; padding-top: 22px; border-top: 1px solid var(--border-soft); }
+.solo-nav h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); margin: 0 0 10px; }
+.test-links { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.test-links li { font-size: 14.5px; }
 
 /* ---------- footer ---------- */
 .site-footer {

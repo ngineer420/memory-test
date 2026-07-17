@@ -1,10 +1,14 @@
 # chimpmemory.com
 
-A free, ad-supported memory-game bundle with three modes in one page:
+A free, ad-supported memory-game bundle with five modes in one page:
 
 - **Chimp Test** (default tab): a grid of numbered tiles that vanish the instant you click "1" — you finish clicking the rest purely from memory of where they were. Named for the well-known primate-cognition task chimpanzees are famously good at. Each round adds one more tile; one wrong click ends the game.
 - **Sequence Memory**: a 3×3 grid lights up tiles one at a time; repeat the sequence back in order. Each success adds one more tile to the sequence.
 - **Number Memory**: a number flashes briefly, then disappears; type it back from memory. Each success adds one more digit.
+- **Visual Memory**: a set of tiles flashes on a grid; click exactly those once they reset. Clearing a level grows the grid and adds a tile; you have three lives, and your score is the level reached.
+- **Verbal Memory**: words appear one at a time and you mark each SEEN or NEW; words from a pool repeat. A wrong call costs one of three lives, and your score is how many words you survive.
+
+Each test also has its own dedicated, indexable page at the site root (`chimp-test.html`, `sequence-memory-test.html`, `number-memory-test.html`, `visual-memory-test.html`, `verbal-memory-test.html`) that hosts that single game by reusing the same `assets/js/app.js` module — the tabbed homepage remains the hub linking to all five.
 
 Each mode tracks a best score and a rolling history of your last 10 attempts (both in `localStorage`, on your own device only), and shows an editorial "rating tier" after every round (e.g. "Sharp memory", "Chimp-level or better") — these tiers are informal groupings for flavor, not citations of a published study.
 
@@ -25,7 +29,12 @@ Then open `http://localhost:8000`.
 ## Structure
 
 ```
-index.html              All three games (tabbed UI)
+index.html              All five games (tabbed UI hub)
+chimp-test.html         Dedicated single-test pages (reuse assets/js/app.js)
+sequence-memory-test.html
+number-memory-test.html
+visual-memory-test.html
+verbal-memory-test.html
 privacy.html            Privacy policy (required for ad networks)
 terms.html              Terms of use
 404.html                Custom not-found page

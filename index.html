@@ -4,18 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chimp Memory Test — Free Working Memory Games</title>
-<meta name="description" content="Play the Chimp Memory Test — the working-memory game chimpanzees famously beat humans at — plus Sequence Memory and Number Memory. Free, instant, no sign-up.">
+<meta name="description" content="Play the Chimp Memory Test — the working-memory game chimpanzees famously beat humans at — plus Sequence Memory, Number Memory, Visual Memory, and Verbal Memory. Five free tests, instant, no sign-up.">
 <link rel="canonical" href="https://chimpmemory.com/">
 <meta name="theme-color" content="#0d1210">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Chimp Memory Test — Free Working Memory Games">
-<meta property="og:description" content="Three quick memory games: the Chimp Test, Sequence Memory, and Number Memory. Free, instant, runs entirely in your browser.">
+<meta property="og:description" content="Five quick memory games: the Chimp Test, Sequence Memory, Number Memory, Visual Memory, and Verbal Memory. Free, instant, runs entirely in your browser.">
 <meta property="og:url" content="https://chimpmemory.com/">
 <meta property="og:image" content="https://chimpmemory.com/assets/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Chimp Memory Test — Free Working Memory Games">
-<meta name="twitter:description" content="Three quick memory games: the Chimp Test, Sequence Memory, and Number Memory. Free, instant, runs entirely in your browser.">
+<meta name="twitter:description" content="Five quick memory games: the Chimp Test, Sequence Memory, Number Memory, Visual Memory, and Verbal Memory. Free, instant, runs entirely in your browser.">
 <meta name="twitter:image" content="https://chimpmemory.com/assets/og-image.png">
 
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -30,7 +30,7 @@
   "applicationCategory": "GameApplication",
   "operatingSystem": "Any",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-  "description": "Free browser-based memory game bundle: the Chimp Test, Sequence Memory, and Number Memory."
+  "description": "Free browser-based memory game bundle: the Chimp Test, Sequence Memory, Number Memory, Visual Memory, and Verbal Memory."
 }
 </script>
 
@@ -62,7 +62,7 @@
     <div class="hero-inner">
       <div class="hero-copy">
         <h1>How's your memory, really?</h1>
-        <p>Three quick tests of working memory — starting with the one chimpanzees are famous for beating humans at.</p>
+        <p>Five quick tests of working memory — starting with the one chimpanzees are famous for beating humans at.</p>
         <p class="trust-line">No sign-up<span class="dot">•</span>Runs 100% in your browser<span class="dot">•</span>Free forever</p>
       </div>
       <div class="hero-demo">
@@ -82,6 +82,8 @@
     <button role="tab" id="tab-chimp" aria-controls="panel-chimp" aria-selected="true" class="tab-btn" type="button">Chimp Test</button>
     <button role="tab" id="tab-sequence" aria-controls="panel-sequence" aria-selected="false" class="tab-btn" type="button" tabindex="-1">Sequence Memory</button>
     <button role="tab" id="tab-number" aria-controls="panel-number" aria-selected="false" class="tab-btn" type="button" tabindex="-1">Number Memory</button>
+    <button role="tab" id="tab-visual" aria-controls="panel-visual" aria-selected="false" class="tab-btn" type="button" tabindex="-1">Visual Memory</button>
+    <button role="tab" id="tab-verbal" aria-controls="panel-verbal" aria-selected="false" class="tab-btn" type="button" tabindex="-1">Verbal Memory</button>
   </div>
 
   <!-- ===================== CHIMP TEST ===================== -->
@@ -178,11 +180,86 @@
     </div>
   </section>
 
+  <!-- ===================== VISUAL MEMORY ===================== -->
+  <section role="tabpanel" id="panel-visual" aria-labelledby="tab-visual" class="tab-panel" hidden>
+    <div class="game-wrap">
+      <div class="panel game-panel" id="visual-game-panel">
+        <div class="game-status">
+          <div class="status-item"><span class="status-label">Level</span><span class="status-value" id="visual-level">1</span></div>
+          <div class="status-item"><span class="status-label">Lives</span><span class="status-value" id="visual-lives">3</span></div>
+          <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="visual-best">0</span></div>
+        </div>
+        <p class="game-instructions" id="visual-instructions">A set of tiles will flash. Memorize them, then click exactly those tiles once they reset. Three lives; the grid grows each level.</p>
+        <div class="visual-board" id="visual-board"></div>
+        <div class="game-controls">
+          <button type="button" class="primary" id="visual-start">Start</button>
+        </div>
+      </div>
+      <div class="panel results-panel" id="visual-results" hidden>
+        <h2>Round over</h2>
+        <p class="score-line">You reached level <strong id="visual-final-level"></strong>.</p>
+        <p class="tier-line" id="visual-tier"></p>
+        <div class="game-controls" style="margin-top:0;">
+          <button type="button" class="primary" id="visual-restart">Play again</button>
+        </div>
+        <div class="history" id="visual-history">
+          <h3>Last 10 attempts</h3>
+          <ol class="history-list" id="visual-history-list"></ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== VERBAL MEMORY ===================== -->
+  <section role="tabpanel" id="panel-verbal" aria-labelledby="tab-verbal" class="tab-panel" hidden>
+    <div class="game-wrap">
+      <div class="panel game-panel" id="verbal-game-panel">
+        <div class="game-status">
+          <div class="status-item"><span class="status-label">Score</span><span class="status-value" id="verbal-score">0</span></div>
+          <div class="status-item"><span class="status-label">Lives</span><span class="status-value" id="verbal-lives">3</span></div>
+          <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="verbal-best">0</span></div>
+        </div>
+        <p class="game-instructions" id="verbal-instructions">Words appear one at a time. Mark each SEEN if it has already shown this game, or NEW if it hasn't. A wrong call costs a life.</p>
+        <div class="verbal-stage">
+          <div class="verbal-word" id="verbal-word">—</div>
+          <div class="verbal-controls" id="verbal-buttons" hidden>
+            <button type="button" id="verbal-seen">SEEN</button>
+            <button type="button" class="primary" id="verbal-new">NEW</button>
+          </div>
+        </div>
+        <div class="game-controls">
+          <button type="button" class="primary" id="verbal-start">Start</button>
+        </div>
+      </div>
+      <div class="panel results-panel" id="verbal-results" hidden>
+        <h2>Round over</h2>
+        <p class="score-line">You survived <strong id="verbal-final-score"></strong> words.</p>
+        <p class="tier-line" id="verbal-tier"></p>
+        <div class="game-controls" style="margin-top:0;">
+          <button type="button" class="primary" id="verbal-restart">Play again</button>
+        </div>
+        <div class="history" id="verbal-history">
+          <h3>Last 10 attempts</h3>
+          <ol class="history-list" id="verbal-history-list"></ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="container-narrow about-section">
     <h2>About these games</h2>
     <p>The <strong>Chimp Test</strong> recreates a well-known working-memory task from primate cognition research: young chimpanzees at Kyoto University's Primate Research Institute were found to briefly outperform human adults at recalling the position of numbers that vanish the moment you start clicking. It's a genuinely hard test of your visuospatial working memory — most people plateau well before double digits.</p>
-    <p><strong>Sequence Memory</strong> tests a different kind of recall: how long a pattern you can hold and reproduce in order. <strong>Number Memory</strong> strips it down further, testing pure digit-span recall — the same skill behind remembering a phone number just long enough to dial it.</p>
-    <p>All three games run entirely client-side in your browser. Nothing you do here is uploaded or stored anywhere except your own device's local storage, which is what powers your best score and history.</p>
+    <p><strong>Sequence Memory</strong> tests a different kind of recall: how long a pattern you can hold and reproduce in order. <strong>Number Memory</strong> strips it down further, testing pure digit-span recall — the same skill behind remembering a phone number just long enough to dial it. <strong>Visual Memory</strong> pushes your spatial recall as a growing grid of tiles flashes and you click them back from memory, and <strong>Verbal Memory</strong> switches to words, tracking how many you can keep straight as SEEN or NEW before you slip.</p>
+    <p>All five games run entirely client-side in your browser. Nothing you do here is uploaded or stored anywhere except your own device's local storage, which is what powers your best score and history.</p>
+    <h2>Play each test on its own page</h2>
+    <p>Prefer a single test with no tabs? Each game has its own dedicated page:</p>
+    <ul class="test-links">
+      <li><a href="/chimp-test.html">Chimp Test</a></li>
+      <li><a href="/sequence-memory-test.html">Sequence Memory Test</a></li>
+      <li><a href="/number-memory-test.html">Number Memory Test</a></li>
+      <li><a href="/visual-memory-test.html">Visual Memory Test</a></li>
+      <li><a href="/verbal-memory-test.html">Verbal Memory Test</a></li>
+    </ul>
   </section>
 
   <section class="container-narrow" id="articles">
