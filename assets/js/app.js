@@ -313,49 +313,95 @@ if (typeof document !== "undefined") {
         return document.getElementById(tab.getAttribute("aria-controls"));
       }
 
+      function pathFor(tab) {
+        return tab.getAttribute("href") || location.pathname;
+      }
+
       function select(tab, opts) {
         const focus = !opts || opts.focus !== false;
         tabs.forEach(function (t) {
           const active = t === tab;
           t.setAttribute("aria-selected", String(active));
           t.tabIndex = active ? 0 : -1;
+          t.classList.toggle("active", active);
+          if (active) t.setAttribute("aria-current", "page");
+          else t.removeAttribute("aria-current");
           const panel = panelFor(t);
           if (panel) {
             panel.hidden = !active;
             panel.classList.toggle("active", active);
           }
         });
-        try {
-          sessionStorage.setItem("cmt:tab", tab.id);
-        } catch (e) {
-          /* ignore */
-        }
         if (focus) tab.focus();
       }
 
+      // Switch to `tab`, keeping the URL in sync. `push` adds a history entry
+      // (a deliberate click); otherwise the current entry is replaced (roving
+      // arrow-key selection / the initial baseline).
+      function go(tab, push, focus) {
+        select(tab, { focus: focus });
+        try {
+          const state = { tool: tab.id };
+          if (push) history.pushState(state, "", pathFor(tab));
+          else history.replaceState(state, "", pathFor(tab));
+        } catch (e) {
+          /* history unavailable — anchors still work as plain links */
+        }
+      }
+
       tabs.forEach(function (tab, i) {
-        tab.addEventListener("click", function () {
-          select(tab);
+        tab.addEventListener("click", function (e) {
+          // Let modified / non-primary clicks fall through to real navigation
+          // so middle-click and cmd/ctrl-click open the standalone page.
+          if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+            return;
+          e.preventDefault();
+          go(tab, true, false);
         });
         tab.addEventListener("keydown", function (e) {
-          if (e.key === "ArrowRight") select(tabs[(i + 1) % tabs.length]);
-          if (e.key === "ArrowLeft") select(tabs[(i - 1 + tabs.length) % tabs.length]);
-          if (e.key === "Home") select(tabs[0]);
-          if (e.key === "End") select(tabs[tabs.length - 1]);
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            go(tabs[(i + 1) % tabs.length], false, true);
+          } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            go(tabs[(i - 1 + tabs.length) % tabs.length], false, true);
+          } else if (e.key === "Home") {
+            e.preventDefault();
+            go(tabs[0], false, true);
+          } else if (e.key === "End") {
+            e.preventDefault();
+            go(tabs[tabs.length - 1], false, true);
+          }
         });
       });
 
-      let restored = null;
+      window.addEventListener("popstate", function (e) {
+        const tool = e.state && e.state.tool;
+        let tab = null;
+        if (tool)
+          tab = tabs.find(function (t) {
+            return t.id === tool;
+          });
+        if (!tab)
+          tab = tabs.find(function (t) {
+            return pathFor(t) === location.pathname;
+          });
+        if (!tab) tab = tabs[0];
+        select(tab, { focus: false });
+      });
+
+      // Default active = Chimp Test. Seed a baseline history entry (URL left as
+      // the current "/" address) so Back after switching returns here cleanly.
+      const initial = tabs[0];
+      select(initial, { focus: false });
       try {
-        restored = sessionStorage.getItem("cmt:tab");
+        history.replaceState(
+          { tool: initial.id },
+          "",
+          location.pathname + location.search
+        );
       } catch (e) {
         /* ignore */
-      }
-      if (restored) {
-        const match = tabs.find(function (t) {
-          return t.id === restored;
-        });
-        if (match && match !== tabs[0]) select(match, { focus: false });
       }
     })();
 

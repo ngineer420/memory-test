@@ -246,7 +246,9 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
   margin-bottom: 22px;
   overflow-x: auto;
 }
+.tabbar.solo-tabbar { margin-top: 16px; }
 .tab-btn {
+  display: inline-block;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -257,11 +259,12 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
   font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
+  text-decoration: none;
 }
-.tab-btn:hover { color: var(--text); border-color: var(--border); }
-.tab-btn[aria-selected="true"] { color: var(--accent-dim); border-color: var(--accent-dim); }
-:root[data-theme="dark"] .tab-btn[aria-selected="true"] { color: var(--accent); border-color: var(--accent); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tab-btn[aria-selected="true"] { color: var(--accent); border-color: var(--accent); } }
+.tab-btn:hover { color: var(--text); border-color: var(--border); text-decoration: none; }
+.tab-btn[aria-selected="true"], .tab-btn.active { color: var(--accent-dim); border-color: var(--accent-dim); }
+:root[data-theme="dark"] .tab-btn[aria-selected="true"], :root[data-theme="dark"] .tab-btn.active { color: var(--accent); border-color: var(--accent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tab-btn[aria-selected="true"], :root:not([data-theme="light"]) .tab-btn.active { color: var(--accent); border-color: var(--accent); } }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
