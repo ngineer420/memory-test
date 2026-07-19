@@ -119,11 +119,11 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   outline-offset: 2px;
 }
 button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 62%, var(--flash)));
+  border-color: transparent;
   color: var(--accent-contrast);
 }
-button.primary:hover { color: var(--accent-contrast); filter: brightness(1.06); }
+button.primary:hover { color: var(--accent-contrast); filter: brightness(1.05); box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--accent) 75%, transparent); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button.icon-btn { padding: 6px 10px; font-size: 13px; font-weight: 500; }
 
@@ -164,7 +164,7 @@ input[type="text"] {
   color: var(--text);
 }
 .brand-name .brand-accent { color: var(--accent-dim); }
-:root[data-theme="dark"] .brand-name .brand-accent { color: var(--accent); }
+:root[data-theme="dark"] .brand-name .brand-accent { color: var(--accent); text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand-name .brand-accent { color: var(--accent); } }
 
 .header-actions { display: flex; align-items: center; gap: 8px; }
@@ -181,7 +181,17 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
 .faq-item p { margin: 0; color: var(--text-dim); }
 
 /* ---------- hero ---------- */
-.hero { padding: 36px 0 30px; }
+.hero {
+  position: relative;
+  padding: 36px 24px 32px;
+  margin: 20px 0 6px;
+  border-radius: 18px;
+  background:
+    radial-gradient(90% 120% at 82% 20%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%),
+    radial-gradient(70% 90% at 10% 100%, color-mix(in srgb, var(--flash) 8%, transparent), transparent 60%),
+    var(--bg-raised);
+  border: 1px solid var(--border-soft);
+}
 .hero-inner {
   display: grid;
   grid-template-columns: 1fr;
@@ -196,7 +206,13 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
   margin: 0 0 12px;
   letter-spacing: -0.02em;
   line-height: 1.08;
+  background: linear-gradient(120deg, var(--text) 30%, var(--accent-dim));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
+:root[data-theme="dark"] .hero h1 { background: linear-gradient(120deg, var(--text) 35%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hero h1 { background: linear-gradient(120deg, var(--text) 35%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; } }
 .hero p { color: var(--text-dim); margin: 0 0 8px; font-size: 15.5px; max-width: 46ch; }
 .hero .trust-line {
   margin-top: 14px;
@@ -231,8 +247,8 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
   animation-delay: var(--d, 0s);
 }
 @keyframes ghost-cycle {
-  0%, 8% { background: var(--flash); color: var(--flash-contrast); border-color: var(--flash); }
-  22%, 100% { background: var(--bg-inset); color: transparent; border-color: var(--border-soft); }
+  0%, 8% { background: var(--flash); color: var(--flash-contrast); border-color: var(--flash); box-shadow: 0 0 18px -4px color-mix(in srgb, var(--flash) 80%, transparent); }
+  22%, 100% { background: var(--bg-inset); color: transparent; border-color: var(--border-soft); box-shadow: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ghost-tile { animation: none; background: var(--bg-inset); color: transparent; }
@@ -502,5 +518,5 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
-.erabbit-mark { display: block; width: 10px; margin: 0 0 0 auto; line-height: 0; }
+.erabbit-mark { display: block; width: 10px; margin: 0 0 0 auto; line-height: 0; cursor: default; }
 .erabbit-mark img { display: block; width: 10px; height: 10px; }
