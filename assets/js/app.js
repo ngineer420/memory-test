@@ -45,6 +45,76 @@ function pushHistory(history, entry, maxLen) {
   return next.slice(0, cap);
 }
 
+/**
+ * Append `score` to the long-run distribution used for percentiles, keeping the
+ * most recent `maxLen`. Separate from `pushHistory`: the history list is a short
+ * "last 10 attempts" display, the distribution is the sample we rank against.
+ * Pure — returns a new array.
+ */
+function pushDistribution(dist, score, maxLen) {
+  const cap = maxLen || 200;
+  const next = (Array.isArray(dist) ? dist : []).concat([score]);
+  return next.slice(-cap);
+}
+
+/**
+ * Percentile rank of `score` within `scores`, using the mid-rank convention:
+ * everything strictly below, plus half the ties. Returns an integer 0-100, or
+ * `null` when there is nothing to rank against.
+ *
+ * `scores` is the player's own past attempts on this device — this is a
+ * personal percentile, not a claim about other people.
+ */
+function percentileRank(scores, score) {
+  const list = (Array.isArray(scores) ? scores : []).filter(function (n) {
+    return typeof n === "number" && isFinite(n);
+  });
+  if (!list.length) return null;
+  let below = 0;
+  let equal = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] < score) below++;
+    else if (list[i] === score) equal++;
+  }
+  return Math.round(((below + equal / 2) / list.length) * 100);
+}
+
+/**
+ * Map a series of scores (oldest first) onto "x,y ..." SVG polyline points
+ * inside a `w` x `h` box with `pad` units of breathing room top and bottom.
+ * A flat series (or a single point) is drawn down the vertical middle.
+ * Pure — no DOM.
+ */
+function sparklinePoints(scores, w, h, pad) {
+  const list = (Array.isArray(scores) ? scores : []).filter(function (n) {
+    return typeof n === "number" && isFinite(n);
+  });
+  if (!list.length) return "";
+  const p = typeof pad === "number" ? pad : 4;
+  const top = p;
+  const bottom = h - p;
+  let min = list[0];
+  let max = list[0];
+  for (let i = 1; i < list.length; i++) {
+    if (list[i] < min) min = list[i];
+    if (list[i] > max) max = list[i];
+  }
+  const span = max - min;
+  const stepX = list.length > 1 ? w / (list.length - 1) : 0;
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    const x = list.length > 1 ? i * stepX : w / 2;
+    // No spread in the data means no meaningful slope — draw it level.
+    const y = span === 0 ? (top + bottom) / 2 : bottom - ((list[i] - min) / span) * (bottom - top);
+    out.push(round2(x) + "," + round2(y));
+  }
+  return out.join(" ");
+}
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
 /** Look up the label for `score` in an ordered list of {min, max, label} tiers. */
 function lookupTier(tiers, score) {
   for (let i = 0; i < tiers.length; i++) {
@@ -441,6 +511,104 @@ if (typeof document !== "undefined") {
       }
     }
 
+    function getDistribution(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function setDistribution(key, dist) {
+      try {
+        localStorage.setItem(key, JSON.stringify(dist));
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const SPARK_W = 320;
+    const SPARK_H = 48;
+    const SPARK_SPAN = 20; // attempts shown in the trend
+
+    function svgEl(name, attrs) {
+      const el = document.createElementNS(SVG_NS, name);
+      Object.keys(attrs).forEach(function (k) {
+        el.setAttribute(k, String(attrs[k]));
+      });
+      return el;
+    }
+
+    /**
+     * Render the "how did that go" block under a result: a new-personal-best
+     * callout, a percentile against this device's own past attempts, and a
+     * sparkline of the recent trend.
+     *
+     * `priorDist` must be the distribution *before* this attempt was added, so
+     * the percentile compares the score against previous attempts rather than
+     * against itself.
+     */
+    function renderTrend(trendEl, opts) {
+      if (!trendEl) return;
+      trendEl.innerHTML = "";
+      const dist = opts.dist || [];
+      const prior = opts.priorDist || [];
+      const unit = opts.unitLabel || "";
+
+      if (opts.isNewBest && prior.length) {
+        const pb = document.createElement("p");
+        pb.className = "pb-line";
+        pb.textContent = "New personal best — " + opts.score + " " + unit + ".";
+        trendEl.appendChild(pb);
+      }
+
+      const pct = prior.length >= 3 ? percentileRank(prior, opts.score) : null;
+      if (pct !== null) {
+        const line = document.createElement("p");
+        line.className = "pct-line";
+        line.textContent =
+          "Better than " + pct + "% of your " + prior.length +
+          " previous attempt" + (prior.length === 1 ? "" : "s") + " on this device.";
+        trendEl.appendChild(line);
+      }
+
+      const series = dist.slice(-SPARK_SPAN);
+      if (series.length >= 2) {
+        const points = sparklinePoints(series, SPARK_W, SPARK_H, 5);
+        const svg = svgEl("svg", {
+          class: "sparkline",
+          viewBox: "0 0 " + SPARK_W + " " + SPARK_H,
+          preserveAspectRatio: "none",
+          role: "img",
+          "aria-label":
+            "Trend of your last " + series.length + " attempts, oldest first: " +
+            series.join(", ") + " " + unit,
+        });
+        // Filled area under the line, then the line itself. `non-scaling-stroke`
+        // keeps the stroke even weight despite preserveAspectRatio="none".
+        svg.appendChild(svgEl("polygon", {
+          class: "spark-area",
+          points: "0," + SPARK_H + " " + points + " " + SPARK_W + "," + SPARK_H,
+        }));
+        svg.appendChild(svgEl("polyline", {
+          class: "spark-line",
+          points: points,
+          "vector-effect": "non-scaling-stroke",
+        }));
+        trendEl.appendChild(svg);
+
+        const caption = document.createElement("p");
+        caption.className = "spark-caption";
+        caption.textContent = "Your last " + series.length + " attempts, oldest to newest.";
+        trendEl.appendChild(caption);
+      }
+
+      trendEl.hidden = !trendEl.firstChild;
+    }
+
     function formatDate(iso) {
       try {
         return new Date(iso).toLocaleString(undefined, {
@@ -495,6 +663,8 @@ if (typeof document !== "undefined") {
 
       const BEST_KEY = "cmt-chimp-best";
       const HISTORY_KEY = "cmt-chimp-history";
+      const DIST_KEY = "cmt-chimp-dist";
+      const trendEl = document.getElementById("chimp-trend");
       const START_COUNT = 4;
 
       let count = START_COUNT;
@@ -580,13 +750,24 @@ if (typeof document !== "undefined") {
           el.classList.remove("blank");
         });
         const finalCount = bestCompletedCount; // 0 if failed on the very first round
-        const best = Math.max(getBest(BEST_KEY), finalCount);
+        const prevBest = getBest(BEST_KEY);
+        const priorDist = getDistribution(DIST_KEY);
+        const best = Math.max(prevBest, finalCount);
         setBest(BEST_KEY, best);
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: finalCount,
           date: new Date().toISOString(),
         });
         setHistory(HISTORY_KEY, history);
+        const dist = pushDistribution(priorDist, finalCount);
+        setDistribution(DIST_KEY, dist);
+        renderTrend(trendEl, {
+          score: finalCount,
+          isNewBest: finalCount > prevBest,
+          priorDist: priorDist,
+          dist: dist,
+          unitLabel: "tiles",
+        });
         bestEl.textContent = String(best);
 
         finalLevelEl.textContent = String(finalCount);
@@ -629,6 +810,8 @@ if (typeof document !== "undefined") {
 
       const BEST_KEY = "cmt-sequence-best";
       const HISTORY_KEY = "cmt-sequence-history";
+      const DIST_KEY = "cmt-sequence-dist";
+      const trendEl = document.getElementById("sequence-trend");
       const GRID_SIZE = 9; // 3x3
       const START_LENGTH = 3;
 
@@ -715,13 +898,24 @@ if (typeof document !== "undefined") {
 
       function endGame() {
         accepting = false;
-        const best = Math.max(getBest(BEST_KEY), level);
+        const prevBest = getBest(BEST_KEY);
+        const priorDist = getDistribution(DIST_KEY);
+        const best = Math.max(prevBest, level);
         setBest(BEST_KEY, best);
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: level,
           date: new Date().toISOString(),
         });
         setHistory(HISTORY_KEY, history);
+        const dist = pushDistribution(priorDist, level);
+        setDistribution(DIST_KEY, dist);
+        renderTrend(trendEl, {
+          score: level,
+          isNewBest: level > prevBest,
+          priorDist: priorDist,
+          dist: dist,
+          unitLabel: "tiles",
+        });
         bestEl.textContent = String(best);
 
         finalLevelEl.textContent = String(level);
@@ -767,6 +961,8 @@ if (typeof document !== "undefined") {
 
       const BEST_KEY = "cmt-number-best";
       const HISTORY_KEY = "cmt-number-history";
+      const DIST_KEY = "cmt-number-dist";
+      const trendEl = document.getElementById("number-trend");
       const START_LENGTH = 3;
       const REVEAL_MS_BASE = 1200;
       const REVEAL_MS_PER_DIGIT = 350;
@@ -815,13 +1011,24 @@ if (typeof document !== "undefined") {
       });
 
       function endGame() {
-        const best = Math.max(getBest(BEST_KEY), lastCompleted);
+        const prevBest = getBest(BEST_KEY);
+        const priorDist = getDistribution(DIST_KEY);
+        const best = Math.max(prevBest, lastCompleted);
         setBest(BEST_KEY, best);
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: lastCompleted,
           date: new Date().toISOString(),
         });
         setHistory(HISTORY_KEY, history);
+        const dist = pushDistribution(priorDist, lastCompleted);
+        setDistribution(DIST_KEY, dist);
+        renderTrend(trendEl, {
+          score: lastCompleted,
+          isNewBest: lastCompleted > prevBest,
+          priorDist: priorDist,
+          dist: dist,
+          unitLabel: "digits",
+        });
         bestEl.textContent = String(best);
 
         finalDigitsEl.textContent = String(lastCompleted);
@@ -863,6 +1070,8 @@ if (typeof document !== "undefined") {
 
       const BEST_KEY = "cmt-visual-best";
       const HISTORY_KEY = "cmt-visual-history";
+      const DIST_KEY = "cmt-visual-dist";
+      const trendEl = document.getElementById("visual-trend");
       const START_LEVEL = 1;
       const LIVES = 3;
       const FLASH_MS = 900;
@@ -964,13 +1173,24 @@ if (typeof document !== "undefined") {
           if (el && !el.classList.contains("correct")) el.classList.add("missed");
         });
         const reached = level; // the level they were on when they ran out of lives
-        const best = Math.max(getBest(BEST_KEY), reached);
+        const prevBest = getBest(BEST_KEY);
+        const priorDist = getDistribution(DIST_KEY);
+        const best = Math.max(prevBest, reached);
         setBest(BEST_KEY, best);
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: reached,
           date: new Date().toISOString(),
         });
         setHistory(HISTORY_KEY, history);
+        const dist = pushDistribution(priorDist, reached);
+        setDistribution(DIST_KEY, dist);
+        renderTrend(trendEl, {
+          score: reached,
+          isNewBest: reached > prevBest,
+          priorDist: priorDist,
+          dist: dist,
+          unitLabel: "levels",
+        });
         bestEl.textContent = String(best);
 
         finalLevelEl.textContent = String(reached);
@@ -1017,6 +1237,8 @@ if (typeof document !== "undefined") {
 
       const BEST_KEY = "cmt-verbal-best";
       const HISTORY_KEY = "cmt-verbal-history";
+      const DIST_KEY = "cmt-verbal-dist";
+      const trendEl = document.getElementById("verbal-trend");
       const LIVES = 3;
       const POOL = [
         "apple", "river", "candle", "market", "planet", "shadow", "bridge", "forest",
@@ -1094,13 +1316,24 @@ if (typeof document !== "undefined") {
       function endGame() {
         accepting = false;
         buttons.hidden = true;
-        const best = Math.max(getBest(BEST_KEY), score);
+        const prevBest = getBest(BEST_KEY);
+        const priorDist = getDistribution(DIST_KEY);
+        const best = Math.max(prevBest, score);
         setBest(BEST_KEY, best);
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: score,
           date: new Date().toISOString(),
         });
         setHistory(HISTORY_KEY, history);
+        const dist = pushDistribution(priorDist, score);
+        setDistribution(DIST_KEY, dist);
+        renderTrend(trendEl, {
+          score: score,
+          isNewBest: score > prevBest,
+          priorDist: priorDist,
+          dist: dist,
+          unitLabel: "words",
+        });
         bestEl.textContent = String(best);
 
         finalScoreEl.textContent = String(score);
@@ -1134,6 +1367,9 @@ if (typeof module !== "undefined" && module.exports) {
     createRng: createRng,
     shuffle: shuffle,
     pushHistory: pushHistory,
+    pushDistribution: pushDistribution,
+    percentileRank: percentileRank,
+    sparklinePoints: sparklinePoints,
     lookupTier: lookupTier,
     chimpGridSize: chimpGridSize,
     chimpGenerateLayout: chimpGenerateLayout,
