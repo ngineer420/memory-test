@@ -20,6 +20,18 @@
 
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/css/styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Sequence Memory Test",
+  "url": "https://chimpmemory.com/sequence-memory-test",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free browser-based sequence memory game: a grid lights tiles one at a time and you repeat the pattern back, one tile longer each round."
+}
+</script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7560786263587509" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -73,6 +85,7 @@
       <h2>Round over</h2>
       <p class="score-line">You reproduced a sequence <strong id="sequence-final-level"></strong> tiles long.</p>
       <p class="tier-line" id="sequence-tier"></p>
+        <div class="score-trend" id="sequence-trend" hidden></div>
       <div class="game-controls" style="margin-top:0;">
         <button type="button" class="primary" id="sequence-restart">Play again</button>
       </div>
@@ -93,6 +106,16 @@
       <li><a href="/verbal-memory-test">Verbal Memory Test</a></li>
     </ul>
   </nav>
+
+  <section class="solo-articles" aria-labelledby="learn-more-heading">
+    <h2 id="learn-more-heading">Learn more about memory testing</h2>
+    <ul class="test-links">
+      <li><a href="/articles/what-is-a-good-memory-score.html">What's a good memory score?</a></li>
+      <li><a href="/articles/how-to-improve-working-memory.html">How to improve your working memory</a></li>
+      <li><a href="/articles/history-of-the-chimp-memory-test.html">The history of the Chimp Memory Test</a></li>
+      <li><a href="/articles/how-this-test-works.html">How this test works</a></li>
+    </ul>
+  </section>
 </main>
 
 <footer class="site-footer">

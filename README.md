@@ -12,6 +12,8 @@ Each test also has its own dedicated, indexable page at the site root (`chimp-te
 
 Each mode tracks a best score and a rolling history of your last 10 attempts (both in `localStorage`, on your own device only), and shows an editorial "rating tier" after every round (e.g. "Sharp memory", "Chimp-level or better") — these tiers are informal groupings for flavor, not citations of a published study.
 
+After each round the results panel also shows a **score trend**: a "new personal best" callout, a percentile against your own previous attempts, and an SVG sparkline of your last 20 scores. The percentile is drawn from a longer per-game distribution (`cmt-<game>-dist`, capped at 200 attempts) kept alongside the 10-entry display history. It is explicitly a *personal* percentile — the site has no backend and therefore no idea how anyone else scored, and the copy says so.
+
 Everything runs client-side — no backend, no build step, no uploads. Deployed as static files on GitHub Pages.
 
 An `articles/` directory holds four original long-form articles (benchmarks, technique guide, the Ayumu/Kyoto University history behind the "chimp test" name, and how the scoring/difficulty logic works) linked from a "Learn more" section on the homepage — an AdSense content-depth pass to support the tool with genuine written content.
@@ -51,7 +53,7 @@ The scoring, layout, and sequence/number generation logic for all three modes is
 implemented as small pure functions at the top of `assets/js/app.js` (`chimpGenerateLayout`,
 `chimpCheckClick`, `chimpRatingTier`, `sequenceAppend`, `sequenceCheckStep`,
 `sequenceRatingTier`, `numberGenerate`, `numberCheckAnswer`, `numberRatingTier`,
-plus the shared `pushHistory`/`lookupTier` helpers). They're guarded by a
+plus the shared `pushHistory`/`pushDistribution`/`percentileRank`/`sparklinePoints`/`lookupTier` helpers). They're guarded by a
 `typeof module !== "undefined"` export so they can be `require()`'d and sanity-checked
 from plain Node during development — see the git history for the (intentionally not
 committed) throwaway test script used to check edge cases like an empty starting
