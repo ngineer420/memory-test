@@ -427,6 +427,12 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
   margin: 0 0 4px; padding: 0 14px;
   font-size: 12px; font-weight: 800; letter-spacing: .08em;
   text-transform: uppercase; color: var(--tb-text-dim);
+  /* The label and its list are two boxes, so `break-inside: avoid` on the <ul>
+     does nothing to keep them together: the column balancer will happily end a
+     column on the heading and start the next one with the list it introduces.
+     Latent here — five tests render a flat sheet with no group labels — but
+     the block is copied verbatim across the portfolio, so it stays in step. */
+  break-after: avoid;
 }
 /* The anchor carries the tap target (36px here, 44px on mobile via .tb-sheet a),
    so the <p> adds no padding of its own or the label floats off its own list. */
