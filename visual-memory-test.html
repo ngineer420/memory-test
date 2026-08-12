@@ -55,15 +55,37 @@
   </div>
 </header>
 
-<main id="main">
-  <nav class="tabbar solo-tabbar" aria-label="Memory tests">
-    <a class="tab-btn" href="/chimp-test">Chimp Test</a>
-    <a class="tab-btn" href="/sequence-memory-test">Sequence Memory</a>
-    <a class="tab-btn" href="/number-memory-test">Number Memory</a>
-    <a class="tab-btn active" href="/visual-memory-test" aria-current="page">Visual Memory</a>
-    <a class="tab-btn" href="/verbal-memory-test">Verbal Memory</a>
-  </nav>
+<!-- nav:start -->
+<nav class="toolbar" aria-label="Tools">
+  <details class="tb-menu">
+    <summary class="tb-trigger" aria-label="All 5 tests">
+      <span class="tb-glyph" aria-hidden="true">&#9636;</span>
+      <span class="tb-label">All 5<span class="tb-label-long"> tests</span></span>
+    </summary>
+    <div class="tb-sheet is-flat">
+      <div class="tb-sheet-cols">
+        <ul>
+          <li><a href="/chimp-test">Chimp Test</a></li>
+          <li><a href="/sequence-memory-test">Sequence Memory Test</a></li>
+          <li><a href="/number-memory-test">Number Memory Test</a></li>
+          <li><a href="/visual-memory-test" aria-current="page">Visual Memory Test</a></li>
+          <li><a href="/verbal-memory-test">Verbal Memory Test</a></li>
+        </ul>
+      </div>
+    </div>
+  </details>
+  <div class="tb-scrim"></div>
+  <ul class="tb-rail">
+    <li><a href="/chimp-test">Chimp</a></li>
+    <li><a href="/sequence-memory-test">Sequence</a></li>
+    <li><a href="/number-memory-test">Number</a></li>
+    <li><a href="/visual-memory-test" aria-current="page">Visual</a></li>
+    <li><a href="/verbal-memory-test">Verbal</a></li>
+  </ul>
+</nav>
+<!-- nav:end -->
 
+<main id="main">
   <div class="solo-head">
     <h1>Visual Memory Test</h1>
     <p class="solo-intro">A set of tiles flashes on the grid — memorize them, then click exactly those tiles once the board resets. Every level you clear grows the grid and adds another tile. You get three lives; how far can your spatial memory take you?</p>
@@ -100,10 +122,8 @@
   <nav class="solo-nav" aria-label="More memory tests">
     <h2>More memory tests</h2>
     <ul class="test-links">
-      <li><a href="/">All five tests (hub)</a></li>
       <li><a href="/chimp-test">Chimp Test</a></li>
       <li><a href="/sequence-memory-test">Sequence Memory Test</a></li>
-      <li><a href="/number-memory-test">Number Memory Test</a></li>
       <li><a href="/verbal-memory-test">Verbal Memory Test</a></li>
     </ul>
   </nav>

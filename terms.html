@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="/assets/css/styles.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
+
 <header class="site-header">
   <div class="header-inner">
     <a class="brand" href="/" aria-label="chimpmemory.com home">
@@ -24,7 +26,37 @@
     </a>
   </div>
 </header>
-<main class="container-narrow">
+
+<!-- nav:start -->
+<nav class="toolbar" aria-label="Tools">
+  <details class="tb-menu">
+    <summary class="tb-trigger" aria-label="All 5 tests">
+      <span class="tb-glyph" aria-hidden="true">&#9636;</span>
+      <span class="tb-label">All 5<span class="tb-label-long"> tests</span></span>
+    </summary>
+    <div class="tb-sheet is-flat">
+      <div class="tb-sheet-cols">
+        <ul>
+          <li><a href="/chimp-test">Chimp Test</a></li>
+          <li><a href="/sequence-memory-test">Sequence Memory Test</a></li>
+          <li><a href="/number-memory-test">Number Memory Test</a></li>
+          <li><a href="/visual-memory-test">Visual Memory Test</a></li>
+          <li><a href="/verbal-memory-test">Verbal Memory Test</a></li>
+        </ul>
+      </div>
+    </div>
+  </details>
+  <div class="tb-scrim"></div>
+  <ul class="tb-rail">
+    <li><a href="/chimp-test">Chimp</a></li>
+    <li><a href="/sequence-memory-test">Sequence</a></li>
+    <li><a href="/number-memory-test">Number</a></li>
+    <li><a href="/visual-memory-test">Visual</a></li>
+    <li><a href="/verbal-memory-test">Verbal</a></li>
+  </ul>
+</nav>
+<!-- nav:end -->
+<main id="main" class="container-narrow">
   <h1>Terms of Use</h1>
   <p>Last updated: July 2026</p>
 
@@ -57,6 +89,7 @@
     </div>
   </div>
 </footer>
+<script src="/assets/js/app.js"></script>
 <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 <a href="https://erabb.it" class="erabbit-mark" aria-label="erabb.it"><img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐇</text></svg>" width="10" height="10" alt=""></a>
 </body>
