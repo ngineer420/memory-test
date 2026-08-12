@@ -369,111 +369,161 @@ if (typeof document !== "undefined") {
       });
     })();
 
-    /* ---- tabs ---- */
+    /* ==================================================================== *
+     * toolbar v1 — the portfolio navigation pattern.                       *
+     * Spec: github.com/ngineer420/ngineer420.github.io/issues/13          *
+     *                                                                     *
+     * Copy this block verbatim into any site in the portfolio. It is pure *
+     * enhancement: with JS off, <details>/<summary> still discloses the   *
+     * sheet, the rail is still a native scroll container of real links,   *
+     * the edge fades are still CSS and the scrim is still CSS. Only the   *
+     * active-chip centring, Escape and click-outside are lost.            *
+     * ================================================================== */
+    function initToolbar() {
+      var bar = document.querySelector(".toolbar");
+      if (!bar) return;
+      var rail = bar.querySelector(".tb-rail");
+      var menu = bar.querySelector("details.tb-menu");
 
-    (function initTabs() {
-      const tablist = document.querySelector('[role="tablist"]');
-      if (!tablist) return; // standalone single-test pages have no tab bar
-      const tabs = Array.prototype.slice.call(
-        tablist.querySelectorAll('[role="tab"]')
-      );
-      if (!tabs.length) return;
-
-      function panelFor(tab) {
-        return document.getElementById(tab.getAttribute("aria-controls"));
-      }
-
-      function pathFor(tab) {
-        return tab.getAttribute("href") || location.pathname;
-      }
-
-      function select(tab, opts) {
-        const focus = !opts || opts.focus !== false;
-        tabs.forEach(function (t) {
-          const active = t === tab;
-          t.setAttribute("aria-selected", String(active));
-          t.tabIndex = active ? 0 : -1;
-          t.classList.toggle("active", active);
-          if (active) t.setAttribute("aria-current", "page");
-          else t.removeAttribute("aria-current");
-          const panel = panelFor(t);
-          if (panel) {
-            panel.hidden = !active;
-            panel.classList.toggle("active", active);
-          }
-        });
-        if (focus) tab.focus();
-      }
-
-      // Switch to `tab`, keeping the URL in sync. `push` adds a history entry
-      // (a deliberate click); otherwise the current entry is replaced (roving
-      // arrow-key selection / the initial baseline).
-      function go(tab, push, focus) {
-        select(tab, { focus: focus });
-        try {
-          const state = { tool: tab.id };
-          if (push) history.pushState(state, "", pathFor(tab));
-          else history.replaceState(state, "", pathFor(tab));
-        } catch (e) {
-          /* history unavailable — anchors still work as plain links */
+      if (rail) {
+        // js-on hands the right-hand fade over to measurement. Until then the
+        // CSS keeps it on, so a JS-disabled visitor never gets a chip clipped
+        // mid-word with nothing to say there is more of the row.
+        rail.classList.add("js-on");
+        var fades = function () {
+          var max = rail.scrollWidth - rail.clientWidth;
+          rail.classList.toggle("can-l", rail.scrollLeft > 1);
+          rail.classList.toggle("can-r", rail.scrollLeft < max - 1);
+        };
+        // Assigning scrollLeft, never scrollIntoView: that also scrolls every
+        // ancestor and the document, which on a phone drops the visitor below
+        // the header on arrival.
+        var current = rail.querySelector("[aria-current]");
+        if (current) {
+          rail.scrollLeft = Math.max(
+            0,
+            current.offsetLeft - (rail.clientWidth - current.offsetWidth) / 2
+          );
         }
+        rail.addEventListener("scroll", fades, { passive: true });
+        window.addEventListener("resize", fades);
+        fades();
       }
 
-      tabs.forEach(function (tab, i) {
-        tab.addEventListener("click", function (e) {
-          // Let modified / non-primary clicks fall through to real navigation
-          // so middle-click and cmd/ctrl-click open the standalone page.
+      if (menu) {
+        // A disclosure, not a modal: focus is deliberately not trapped, Tab
+        // walks the links and straight out the other side.
+        window.addEventListener("keydown", function (e) {
+          if (e.key !== "Escape" || !menu.open) return;
+          menu.open = false;
+          var summary = menu.querySelector("summary");
+          if (summary) summary.focus();
+        });
+        document.addEventListener("click", function (e) {
+          if (menu.open && !menu.contains(e.target)) menu.open = false;
+        });
+      }
+    }
+
+    /* ---- homepage: the toolbar's own links switch the five game panels ----
+     *
+     * The homepage carries all five games. The toolbar is the only nav layer
+     * on the page, so its links do double duty here: a plain left click swaps
+     * the panel in place and replaces the URL with that test's real address,
+     * exactly as the old role="tablist" strip did, while a modified click, a
+     * JS-disabled visitor and every crawler get ordinary navigation to the
+     * standalone page — which is the same game.
+     */
+    function initHomePanels() {
+      var bar = document.querySelector(".toolbar");
+      if (!bar) return;
+      var PANELS = {
+        "/chimp-test": "panel-chimp",
+        "/sequence-memory-test": "panel-sequence",
+        "/number-memory-test": "panel-number",
+        "/visual-memory-test": "panel-visual",
+        "/verbal-memory-test": "panel-verbal",
+      };
+      var links = Array.prototype.slice.call(bar.querySelectorAll("a[href]"));
+      var keys = Object.keys(PANELS);
+      var panels = {};
+      for (var i = 0; i < keys.length; i++) {
+        var el = document.getElementById(PANELS[keys[i]]);
+        if (!el) return; // a standalone test page: no panels to switch
+        panels[keys[i]] = el;
+      }
+      var rail = bar.querySelector(".tb-rail");
+      var menu = bar.querySelector("details.tb-menu");
+
+      function pathOf(a) {
+        return (a.getAttribute("href") || "").replace(/\.html$/, "").replace(/\/$/, "");
+      }
+
+      function show(path, moveFocus) {
+        keys.forEach(function (k) {
+          var on = k === path;
+          panels[k].hidden = !on;
+          panels[k].classList.toggle("active", on);
+        });
+        links.forEach(function (a) {
+          if (pathOf(a) === path) a.setAttribute("aria-current", "page");
+          else a.removeAttribute("aria-current");
+        });
+        if (rail) {
+          var cur = rail.querySelector("[aria-current]");
+          if (cur) {
+            rail.scrollLeft = Math.max(
+              0,
+              cur.offsetLeft - (rail.clientWidth - cur.offsetWidth) / 2
+            );
+          }
+        }
+        if (moveFocus) panels[path].focus();
+      }
+
+      links.forEach(function (a) {
+        var path = pathOf(a);
+        if (!panels[path]) return;
+        a.addEventListener("click", function (e) {
+          // Modified and non-primary clicks fall through to real navigation so
+          // middle-click and cmd/ctrl-click still open the standalone page.
           if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
             return;
           e.preventDefault();
-          go(tab, true, false);
-        });
-        tab.addEventListener("keydown", function (e) {
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            go(tabs[(i + 1) % tabs.length], false, true);
-          } else if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            go(tabs[(i - 1 + tabs.length) % tabs.length], false, true);
-          } else if (e.key === "Home") {
-            e.preventDefault();
-            go(tabs[0], false, true);
-          } else if (e.key === "End") {
-            e.preventDefault();
-            go(tabs[tabs.length - 1], false, true);
+          if (menu) menu.open = false;
+          show(path, true);
+          try {
+            history.pushState({ tool: path }, "", path);
+          } catch (err) {
+            /* history unavailable — the anchor is still a real link */
           }
         });
       });
 
       window.addEventListener("popstate", function (e) {
-        const tool = e.state && e.state.tool;
-        let tab = null;
-        if (tool)
-          tab = tabs.find(function (t) {
-            return t.id === tool;
-          });
-        if (!tab)
-          tab = tabs.find(function (t) {
-            return pathFor(t) === location.pathname;
-          });
-        if (!tab) tab = tabs[0];
-        select(tab, { focus: false });
+        var path = (e.state && e.state.tool) || null;
+        if (!path || !panels[path]) {
+          path = location.pathname.replace(/\.html$/, "").replace(/\/$/, "");
+        }
+        show(panels[path] ? path : keys[0], false);
       });
 
-      // Default active = Chimp Test. Seed a baseline history entry (URL left as
-      // the current "/" address) so Back after switching returns here cleanly.
-      const initial = tabs[0];
-      select(initial, { focus: false });
+      // Default panel = the Chimp Test, the test this domain is named for.
+      // Seed a baseline entry so Back after switching returns here cleanly.
+      show(keys[0], false);
       try {
         history.replaceState(
-          { tool: initial.id },
+          { tool: keys[0] },
           "",
           location.pathname + location.search
         );
-      } catch (e) {
+      } catch (err) {
         /* ignore */
       }
-    })();
+    }
+
+    initToolbar();
+    initHomePanels();
 
     const yearEl = document.getElementById("year");
     if (yearEl) yearEl.textContent = new Date().getFullYear();
