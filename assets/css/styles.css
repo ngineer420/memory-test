@@ -488,9 +488,17 @@ main { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 60px; }
    byte-comparable with the rest of the portfolio. */
 :root[data-theme="dark"] .tb-rail a,
 :root[data-theme="dark"] .tb-sheet a { color: var(--tb-text-dim); }
+/* The dim restatement above outweighs the shared block's own
+   `.tb-rail a[aria-current]`, so the current page has to be restated at the
+   same weight too — otherwise every chip renders dim and the one thing the
+   rail is for, showing where you are, is lost in dark mode. */
+:root[data-theme="dark"] .tb-rail a[aria-current],
+:root[data-theme="dark"] .tb-sheet a[aria-current] { color: var(--tb-text); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .tb-rail a,
   :root:not([data-theme="light"]) .tb-sheet a { color: var(--tb-text-dim); }
+  :root:not([data-theme="light"]) .tb-rail a[aria-current],
+  :root:not([data-theme="light"]) .tb-sheet a[aria-current] { color: var(--tb-text); }
 }
 
 /* ---------- homepage test panels ---------- */
