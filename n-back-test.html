@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>N-Back Test — Free Online Working Memory Training</title>
+<meta name="description" content="Take the single n-back test: a square jumps around a 3x3 grid and you press Match when it repeats where it was n steps back. Adaptive levels, a daily streak, and hits, false alarms and d-prime rather than a misleading percentage.">
+<link rel="canonical" href="https://chimpmemory.com/n-back-test">
+<meta name="theme-color" content="#0d1210">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="N-Back Test — Free Online Working Memory Training">
+<meta property="og:description" content="A square jumps around a grid; press Match when it repeats where it was n steps back. The level adapts, the day's boards are fixed, and the score is d-prime, not percent correct.">
+<meta property="og:url" content="https://chimpmemory.com/n-back-test">
+<meta property="og:image" content="https://chimpmemory.com/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="N-Back Test — Free Online Working Memory Training">
+<meta name="twitter:description" content="Single position n-back with an adaptive ladder and a daily streak. Scored with hits, false alarms and d-prime.">
+<meta name="twitter:image" content="https://chimpmemory.com/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "N-Back Test",
+  "url": "https://chimpmemory.com/n-back-test",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free browser-based single n-back working memory test with an adaptive level ladder, a daily streak, and signal-detection scoring (hits, false alarms and d-prime)."
+}
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7560786263587509" crossorigin="anonymous"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/" aria-label="chimpmemory.com home">
+      <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--accent-dim)"/>
+        <rect x="6" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+        <rect x="18" y="6" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="6" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)" opacity=".45"/>
+        <rect x="18" y="18" width="8" height="8" rx="2" fill="var(--bg-raised)"/>
+      </svg>
+      <span class="brand-name">Chimp<span class="brand-accent">Memory</span></span>
+    </a>
+    <div class="header-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<!-- nav:start -->
+<nav class="toolbar" aria-label="Tools">
+  <details class="tb-menu">
+    <summary class="tb-trigger" aria-label="All 6 tests">
+      <span class="tb-glyph" aria-hidden="true">&#9636;</span>
+      <span class="tb-label">All 6<span class="tb-label-long"> tests</span></span>
+    </summary>
+    <div class="tb-sheet is-flat">
+      <div class="tb-sheet-cols">
+        <ul>
+          <li><a href="/chimp-test">Chimp Test</a></li>
+          <li><a href="/sequence-memory-test">Sequence Memory Test</a></li>
+          <li><a href="/number-memory-test">Number Memory Test</a></li>
+          <li><a href="/visual-memory-test">Visual Memory Test</a></li>
+          <li><a href="/verbal-memory-test">Verbal Memory Test</a></li>
+          <li><a href="/n-back-test" aria-current="page">N-Back Test</a></li>
+        </ul>
+      </div>
+    </div>
+  </details>
+  <div class="tb-scrim"></div>
+  <ul class="tb-rail">
+    <li><a href="/chimp-test">Chimp</a></li>
+    <li><a href="/sequence-memory-test">Sequence</a></li>
+    <li><a href="/number-memory-test">Number</a></li>
+    <li><a href="/visual-memory-test">Visual</a></li>
+    <li><a href="/verbal-memory-test">Verbal</a></li>
+    <li><a href="/n-back-test" aria-current="page">N-Back</a></li>
+  </ul>
+</nav>
+<!-- nav:end -->
+
+<main id="main">
+  <div class="solo-head">
+    <h1>N-Back Test</h1>
+    <p class="solo-intro">A square jumps around a 3&times;3 grid, one position every two and a half seconds. Press <strong>Match</strong> whenever it lands where it was <em>n</em> steps ago. Unlike the other tests here, this one is not a ladder you fall off — it is a session you repeat, and it gets harder as you get better.</p>
+  </div>
+
+  <div class="game-wrap">
+    <div class="panel game-panel" id="nback-game-panel">
+      <div class="game-status nback-status">
+        <div class="status-item"><span class="status-label">Level</span><span class="status-value"><span id="nback-level">2</span>-back</span></div>
+        <div class="status-item"><span class="status-label">Block</span><span class="status-value" id="nback-block">1 of 3</span></div>
+        <div class="status-item"><span class="status-label">Streak</span><span class="status-value" id="nback-streak">0</span></div>
+        <div class="status-item"><span class="status-label">Best</span><span class="status-value" id="nback-best">0</span></div>
+      </div>
+      <p class="game-instructions" id="nback-instructions" aria-live="polite">Watch the square move. Press Match when it is in the same place it was <em>n</em> steps ago — three blocks make a session.</p>
+      <div class="nback-grid" id="nback-grid" aria-hidden="true"></div>
+      <div class="nback-respond">
+        <button type="button" class="primary" id="nback-match" hidden>Match <span style="opacity:.7;font-size:13px;">(space)</span></button>
+      </div>
+      <div class="game-controls">
+        <button type="button" class="primary" id="nback-start">Start session</button>
+      </div>
+      <p class="nback-note" id="nback-day-note"></p>
+    </div>
+
+    <div class="panel results-panel" id="nback-results" hidden>
+      <h2>Session complete</h2>
+      <p class="score-line">Your sensitivity this session: <strong id="nback-final-d">0.00</strong> d&prime; at <span class="nback-badge" id="nback-level-badge">2-back</span></p>
+      <p class="tier-line" id="nback-tier"></p>
+
+      <div class="nback-figures">
+        <div class="nback-fig"><span class="fig-value" id="nback-hits">0 of 0</span><span class="fig-label">Targets caught</span></div>
+        <div class="nback-fig"><span class="fig-value" id="nback-misses">0</span><span class="fig-label">Missed</span></div>
+        <div class="nback-fig"><span class="fig-value" id="nback-false">0</span><span class="fig-label">False alarms</span></div>
+        <div class="nback-fig"><span class="fig-value" id="nback-accuracy">0%</span><span class="fig-label">Trials correct</span></div>
+      </div>
+      <p class="nback-note"><strong>How this is scored.</strong> Most trials in an n-back run are <em>not</em> targets, so &ldquo;percent correct&rdquo; is a trap: press nothing at all and you still score around 72%, having caught nothing. The headline figure is <strong>d&prime;</strong> (d-prime) — the distance between how a target feels to you and how a non-target feels, in standard deviations, worked out from your hit rate and your false-alarm rate together. 0 means you cannot tell them apart. Around 1 is a real but shaky signal. Above 3 is a near-flawless session. Answering the same way on every trial scores exactly 0, whichever way it was.</p>
+      <p class="nback-note" id="nback-ladder"></p>
+      <p class="nback-note" id="nback-streak-line"></p>
+
+      <div class="score-trend" id="nback-trend" hidden></div>
+      <div class="game-controls" style="margin-top:0;">
+        <button type="button" class="primary" id="nback-restart">Run another session</button>
+      </div>
+      <div class="history" id="nback-history">
+        <h3>Last 10 sessions</h3>
+        <ol class="history-list" id="nback-history-list"></ol>
+      </div>
+    </div>
+  </div>
+
+  <section class="solo-articles" aria-labelledby="how-heading">
+    <h2 id="how-heading">How the n-back test works</h2>
+    <p>Each trial shows one lit square for half a second. Your job is to compare it with the square from <em>n</em> trials ago and press Match if they are in the same place. At 2-back you are holding two positions and updating both every two and a half seconds; at 3-back, three. That constant discarding of the oldest item while a new one arrives is what makes n-back a working-memory task rather than a memory-span one — nothing is ever safely stored.</p>
+    <p>A session is three blocks of about twenty trials. The first <em>n</em> trials of each block have nothing behind them to match, so they are dealt but never scored.</p>
+
+    <h3>The level moves on its own</h3>
+    <p>Three clean blocks in a row — every target caught, no false alarms — and you go up a rung. Two missed targets in a single block and you drop one. Your rung is remembered between visits, so the task keeps sitting just past what you can comfortably do, which is the only setting at which this kind of practice is worth anything.</p>
+    <p>The level itself is deliberately <em>not</em> the number we chart. It is an integer that lives between 1 and 5 for essentially everyone, so a graph of it would be a flat line with the occasional step. It is a badge; the chart plots your d&prime;, which moves continuously and can improve while your level stays put.</p>
+
+    <h3>Today's boards are fixed</h3>
+    <p>Each block is dealt from today's date together with the rung you are on, so reloading the page will not deal you an easier board — the next block is simply the next one. Tomorrow is a fresh set. Note that this does not mean everyone gets the same board: a target is defined <em>relative to n</em>, so a player at 2-back and a player at 4-back cannot meaningfully share a sequence.</p>
+
+    <h3>What n-back training does and does not do</h3>
+    <p>N-back is the most-studied working-memory training task there is, and the honest summary is that people reliably get better at n-back. Whether that improvement carries over to unrelated abilities is contested, and has been for over a decade — treat any site promising IQ points from a browser game with suspicion. What you can expect is a measurable, trackable improvement on this specific task, which is why the chart here plots your own sessions and nothing else.</p>
+    <p>Nothing you do here leaves your device: your level, streak and session history live in this browser's local storage, and there is no account and no server.</p>
+  </section>
+
+  <nav class="solo-nav" aria-label="More memory tests">
+    <h2>More memory tests</h2>
+    <ul class="test-links">
+      <li><a href="/chimp-test">Chimp Test</a></li>
+      <li><a href="/sequence-memory-test">Sequence Memory Test</a></li>
+      <li><a href="/visual-memory-test">Visual Memory Test</a></li>
+      <li><a href="/verbal-memory-test">Verbal Memory Test</a></li>
+      <li><a href="/number-memory-test">Number Memory Test</a></li>
+    </ul>
+  </nav>
+
+  <section class="solo-articles" aria-labelledby="learn-more-heading">
+    <h2 id="learn-more-heading">Learn more about memory testing</h2>
+    <ul class="test-links">
+      <li><a href="/articles/what-is-a-good-memory-score.html">What's a good memory score?</a></li>
+      <li><a href="/articles/how-to-improve-working-memory.html">How to improve your working memory</a></li>
+      <li><a href="/articles/history-of-the-chimp-memory-test.html">The history of the Chimp Memory Test</a></li>
+      <li><a href="/articles/how-this-test-works.html">How this test works</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>© <span id="year"></span> chimpmemory.com</div>
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/app.js"></script>
+<a href="https://erabb.it" class="erabbit-mark" aria-label="erabb.it"><img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐇</text></svg>" width="10" height="10" alt=""></a>
+</body>
+</html>

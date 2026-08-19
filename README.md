@@ -49,11 +49,22 @@ robots.txt / sitemap.xml
 
 ### Core game logic
 
-The scoring, layout, and sequence/number generation logic for all three modes is
+The scoring, layout, and sequence/number generation logic for every mode is
 implemented as small pure functions at the top of `assets/js/app.js` (`chimpGenerateLayout`,
 `chimpCheckClick`, `chimpRatingTier`, `sequenceAppend`, `sequenceCheckStep`,
 `sequenceRatingTier`, `numberGenerate`, `numberCheckAnswer`, `numberRatingTier`,
-plus the shared `pushHistory`/`pushDistribution`/`percentileRank`/`sparklinePoints`/`lookupTier` helpers). They're guarded by a
+`visualGenerateLayout`, `verbalPickWord`, and the n-back set —
+`nbackGenerateSequence`, `nbackCheckResponse`, `nbackScore`, `nbackNextLevel`,
+`nbackDailySeed`, `nbackUpdateStreak`, `nbackRatingTier` —
+plus the shared `pushHistory`/`pushDistribution`/`percentileRank`/`sparklinePoints`/`lookupTier` helpers).
+
+The n-back scoring in particular is worth checking from Node after any change:
+percent-correct is a misleading measure on a task where most trials are not
+targets, so `nbackScore` reports hits, misses, false alarms and correct
+rejections separately and derives d-prime from the hit and false-alarm rates
+(log-linear correction, Hautus 1995). A run with no responses at all scores
+about 72% correct and a d-prime of exactly 0, which is the behaviour to
+re-check. They're guarded by a
 `typeof module !== "undefined"` export so they can be `require()`'d and sanity-checked
 from plain Node during development — see the git history for the (intentionally not
 committed) throwaway test script used to check edge cases like an empty starting
