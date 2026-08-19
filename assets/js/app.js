@@ -344,6 +344,266 @@ function verbalRatingTier(score) {
   return lookupTier(VERBAL_TIERS, score);
 }
 
+/* ---- N-Back ----
+
+   The only test on this site whose score is not "how far did you get". An
+   n-back run is a stream of trials, most of which are NOT targets, so
+   percent-correct is a broken measure: on a run where 25% of trials are
+   targets, answering "no" to everything scores 75% while catching nothing.
+   Everything below therefore counts hits and false alarms separately, and the
+   headline number is d-prime — how far apart the player's "target" and
+   "non-target" experiences actually are, in standard deviations. The page
+   states that rule where a player can read it. */
+
+/* Inverse standard normal CDF — Acklam's rational approximation
+   (|error| < 1.15e-9). Needed only for d-prime; kept here rather than pulled in
+   because this file has no dependencies and is not about to grow any. */
+function inverseNormalCdf(p) {
+  if (!(p > 0) || !(p < 1)) return NaN;
+  const a = [-3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2,
+             1.383577518672690e2, -3.066479806614716e1, 2.506628277459239e0];
+  const b = [-5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2,
+             6.680131188771972e1, -1.328068155288572e1];
+  const c = [-7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838e0,
+             -2.549732539343734e0, 4.374664141464968e0, 2.938163982698783e0];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996e0,
+             3.754408661907416e0];
+  const pLow = 0.02425;
+  let q, r;
+  if (p < pLow) {
+    q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+           ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  if (p > 1 - pLow) {
+    q = Math.sqrt(-2 * Math.log(1 - p));
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+            ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
+  q = p - 0.5;
+  r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+         (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+
+/**
+ * Build one block of a position n-back run: `len` trials over a 3x3 grid,
+ * returned as an array of cell indices 0-8.
+ *
+ * A trial is a target when it repeats the cell shown `n` trials earlier. The
+ * first `n` trials cannot be targets — there is nothing behind them to match —
+ * so they are dealt freely and are not scored.
+ *
+ * `targetRate` is the share of the SCORABLE trials that are targets, and the
+ * count is rounded rather than sampled per trial: a coin flip per trial would
+ * hand one player a block with three targets and the next a block with eleven,
+ * and d-prime from three targets is not a measurement. Non-target trials are
+ * dealt a cell that deliberately differs from the one n back, so the only
+ * targets in the block are the intended ones.
+ *
+ * Deterministic given `rng` — pass a seeded one and the same day deals the same
+ * block.
+ */
+function nbackGenerateSequence(len, n, targetRate, rng) {
+  const useRng = rng || Math.random;
+  const cells = 9;
+  const total = Math.max(n + 1, len | 0);
+  const rate = typeof targetRate === "number" ? targetRate : 0.3;
+  const scorable = total - n;
+  const wanted = Math.max(1, Math.min(scorable, Math.round(scorable * rate)));
+
+  // Choose which scorable trials are targets, without replacement.
+  const eligible = [];
+  for (let i = n; i < total; i++) eligible.push(i);
+  const chosen = shuffle(eligible, useRng).slice(0, wanted);
+  const isTarget = {};
+  for (let i = 0; i < chosen.length; i++) isTarget[chosen[i]] = true;
+
+  const seq = [];
+  for (let i = 0; i < total; i++) {
+    if (i < n) {
+      seq.push(Math.floor(useRng() * cells));
+    } else if (isTarget[i]) {
+      seq.push(seq[i - n]);
+    } else {
+      // Anything except the cell n back, so a lure cannot become a target.
+      const avoid = seq[i - n];
+      let pick = Math.floor(useRng() * (cells - 1));
+      if (pick >= avoid) pick += 1;
+      seq.push(pick);
+    }
+  }
+  return seq;
+}
+
+/** True when trial `index` of `sequence` repeats the cell `n` trials back. */
+function nbackIsTarget(sequence, n, index) {
+  return index >= n && sequence[index] === sequence[index - n];
+}
+
+/**
+ * Classify one trial. Returns "hit", "miss", "falseAlarm", "correctRejection",
+ * or null for the first `n` trials, which carry no possible answer and are
+ * therefore not scored at all.
+ */
+function nbackCheckResponse(sequence, n, index, responded) {
+  if (index < n) return null;
+  const target = nbackIsTarget(sequence, n, index);
+  if (target) return responded ? "hit" : "miss";
+  return responded ? "falseAlarm" : "correctRejection";
+}
+
+/**
+ * Score a whole block. `responses` is one boolean per trial — did the player
+ * press "match" on it.
+ *
+ * d-prime = z(hit rate) - z(false-alarm rate). A flawless block would put one of
+ * those rates at 0 or 1, where z is infinite, so both rates use the log-linear
+ * correction (Hautus 1995): half a trial is added to the hit and false-alarm
+ * counts and a whole trial to each total, always, not only at the extremes.
+ * Applying it unconditionally is what keeps the measure smooth — a correction
+ * that switches on only for perfect blocks puts a step in the scale right where
+ * people are trying to improve. It is also why a flawless long block scores
+ * higher than a flawless short one: more evidence, less correction.
+ *
+ * One case is not a d-prime at all: a player who presses on EVERY trial, or on
+ * none of them, has given the same answer throughout and shown no
+ * discrimination whatsoever. The corrected rates would still produce a non-zero
+ * number there, purely from the two totals differing in size, so that case
+ * reports 0 rather than an artefact.
+ */
+function nbackScore(sequence, n, responses) {
+  const answers = responses || [];
+  let hits = 0, misses = 0, falseAlarms = 0, correctRejections = 0;
+  for (let i = 0; i < sequence.length; i++) {
+    const verdict = nbackCheckResponse(sequence, n, i, Boolean(answers[i]));
+    if (verdict === "hit") hits++;
+    else if (verdict === "miss") misses++;
+    else if (verdict === "falseAlarm") falseAlarms++;
+    else if (verdict === "correctRejection") correctRejections++;
+  }
+  const targets = hits + misses;
+  const nonTargets = falseAlarms + correctRejections;
+  const scored = targets + nonTargets;
+  const correct = hits + correctRejections;
+
+  const pressedNothing = hits + falseAlarms === 0;
+  const pressedEverything = misses + correctRejections === 0;
+
+  let dPrime = null;
+  if (targets > 0 && nonTargets > 0) {
+    if (pressedNothing || pressedEverything) {
+      dPrime = 0;
+    } else {
+      const hitRate = (hits + 0.5) / (targets + 1);
+      const faRate = (falseAlarms + 0.5) / (nonTargets + 1);
+      dPrime = inverseNormalCdf(hitRate) - inverseNormalCdf(faRate);
+    }
+  }
+
+  return {
+    trials: sequence.length,
+    scored: scored,
+    targets: targets,
+    nonTargets: nonTargets,
+    hits: hits,
+    misses: misses,
+    falseAlarms: falseAlarms,
+    correctRejections: correctRejections,
+    accuracy: scored ? correct / scored : 0,
+    hitRate: targets ? hits / targets : 0,
+    falseAlarmRate: nonTargets ? falseAlarms / nonTargets : 0,
+    dPrime: dPrime,
+    sameAnswerThroughout: pressedNothing || pressedEverything,
+    clean: targets > 0 && misses === 0 && falseAlarms === 0,
+  };
+}
+
+/**
+ * The ladder. `3 clean blocks in a row` moves up, `2 or more missed targets in
+ * one block` moves down, and n never drops below 1. Pure: it takes the current
+ * rung and a block's score and returns the next rung plus the running streak,
+ * so the browser code holds no laddering logic of its own.
+ */
+function nbackNextLevel(level, cleanStreak, score) {
+  let n = level;
+  let streak = score.clean ? cleanStreak + 1 : 0;
+  let moved = null;
+  if (streak >= 3) {
+    n = level + 1;
+    streak = 0;
+    moved = "up";
+  } else if (score.misses >= 2) {
+    n = Math.max(1, level - 1);
+    streak = 0;
+    if (n !== level) moved = "down";
+  }
+  return { level: n, cleanStreak: streak, moved: moved };
+}
+
+/**
+ * A seed for the day, so a session cannot be rerolled by refreshing until it
+ * deals something easy. It mixes the date with the rung and the block number,
+ * because a player sitting at 2-back and one sitting at 4-back cannot share a
+ * board — a target is defined relative to n, so the same sequence is a
+ * different test at every level.
+ */
+function nbackDailySeed(dateStr, n, block) {
+  const text = String(dateStr) + "|" + n + "|" + block;
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** Local calendar date as YYYY-MM-DD — the streak's unit, in the player's own
+    timezone rather than UTC, because "today" is where they are sitting. */
+function nbackDayKey(date) {
+  const d = date || new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return d.getFullYear() + "-" + m + "-" + day;
+}
+
+/** Days between two YYYY-MM-DD keys, or null if either is unparseable. */
+function nbackDaysBetween(from, to) {
+  const a = Date.parse(from + "T00:00:00");
+  const b = Date.parse(to + "T00:00:00");
+  if (isNaN(a) || isNaN(b)) return null;
+  return Math.round((b - a) / 86400000);
+}
+
+/**
+ * Update a streak record for a session finished on `today`. Same day, no
+ * change; the next day, +1; any longer gap starts again at 1.
+ */
+function nbackUpdateStreak(streak, today) {
+  const prev = streak && typeof streak.count === "number" ? streak : { count: 0, last: null };
+  if (!prev.last) return { count: 1, last: today };
+  const gap = nbackDaysBetween(prev.last, today);
+  if (gap === 0) return { count: Math.max(1, prev.count), last: today };
+  if (gap === 1) return { count: prev.count + 1, last: today };
+  return { count: 1, last: today };
+}
+
+/* The rung, not the score — n-level is an integer that lives in 1-5 for
+   essentially everyone, which is exactly why it is a badge on this test and
+   never the charted series. */
+const NBACK_TIERS = [
+  { min: 0, max: 1, label: "1-back — the warm-up rung: just watch for an immediate repeat" },
+  { min: 2, max: 2, label: "2-back — where most people start and where a lot of people stay" },
+  { min: 3, max: 3, label: "3-back — clearly above the starting rung; this is real work" },
+  { min: 4, max: 4, label: "4-back — strong. Sustaining this over a full session is uncommon" },
+  { min: 5, max: 5, label: "5-back — rare territory for a single-stream task" },
+  { min: 6, max: Infinity, label: "6-back or higher — extraordinary, and worth checking you are not counting rhythm instead of position" },
+];
+
+function nbackRatingTier(n) {
+  return lookupTier(NBACK_TIERS, n);
+}
+
 /* ===================================================================== */
 /* ============================= DOM WIRING ============================= */
 /* ===================================================================== */
@@ -1407,6 +1667,306 @@ if (typeof document !== "undefined") {
 
       renderHistoryList(historyList, getHistory(HISTORY_KEY), "words");
     })();
+
+    /* =========================== N-BACK =========================== */
+    /* The one test here with a running clock. Everything else on this site is
+       turn-based: the board waits for you. An n-back trial does not — it
+       appears, it goes, and the answer window closes with it. That is the
+       point of the task and it is why this tool owns a timer the others do
+       not. The measurement itself is still pure: the block is dealt by
+       nbackGenerateSequence and scored by nbackScore, both above the DOM
+       divider and both Node-checkable. */
+
+    (function nbackTool() {
+      const grid = document.getElementById("nback-grid");
+      if (!grid) return; // markup for this test isn't on the page
+
+      const levelEl = document.getElementById("nback-level");
+      const blockEl = document.getElementById("nback-block");
+      const streakEl = document.getElementById("nback-streak");
+      const bestEl = document.getElementById("nback-best");
+      const instructions = document.getElementById("nback-instructions");
+      const startBtn = document.getElementById("nback-start");
+      const matchBtn = document.getElementById("nback-match");
+      const gamePanel = document.getElementById("nback-game-panel");
+      const resultsPanel = document.getElementById("nback-results");
+      const restartBtn = document.getElementById("nback-restart");
+      const historyList = document.getElementById("nback-history-list");
+      const trendEl = document.getElementById("nback-trend");
+      const dEl = document.getElementById("nback-final-d");
+      const badgeEl = document.getElementById("nback-level-badge");
+      const tierEl = document.getElementById("nback-tier");
+      const hitsEl = document.getElementById("nback-hits");
+      const missesEl = document.getElementById("nback-misses");
+      const faEl = document.getElementById("nback-false");
+      const accEl = document.getElementById("nback-accuracy");
+      const ladderEl = document.getElementById("nback-ladder");
+      const streakLineEl = document.getElementById("nback-streak-line");
+      const dayNoteEl = document.getElementById("nback-day-note");
+
+      const BEST_KEY = "cmt-nback-best";       // highest rung ever reached (an integer)
+      const HISTORY_KEY = "cmt-nback-history"; // last 10 sessions, scored in d'
+      const DIST_KEY = "cmt-nback-dist";       // the charted series, also d'
+      const LEVEL_KEY = "cmt-nback-level";     // the rung you are on, kept between days
+      const STREAK_KEY = "cmt-nback-streak";
+      const DAY_KEY = "cmt-nback-day";
+
+      const BLOCKS_PER_SESSION = 3;
+      const BASE_TRIALS = 20;      // plus n, since the first n trials cannot be scored
+      const TARGET_RATE = 0.3;
+      const TRIAL_MS = 2500;
+      const STIM_MS = 500;
+
+      let level = readLevel();
+      let cleanStreak = 0;
+      let blockIndex = 0;          // 0..BLOCKS_PER_SESSION-1 within this session
+      let sequence = [];
+      let responses = [];
+      let trial = -1;
+      let blockScores = [];
+      let running = false;
+      let timer = null;
+      let stimTimer = null;
+      let blockStartedAt = 0;
+      let cells = [];
+
+      function readLevel() {
+        const n = parseInt(localStorage.getItem(LEVEL_KEY), 10);
+        return isNaN(n) || n < 1 ? 2 : Math.min(n, 9);
+      }
+      function readJson(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+      function writeJson(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+      }
+
+      /* How many blocks have already been dealt today. It is part of the seed,
+         so reloading the page mid-session deals the NEXT block rather than the
+         one you just saw — the day's boards are fixed, not repeatable. */
+      function dayRecord() {
+        const today = nbackDayKey();
+        const rec = readJson(DAY_KEY, null);
+        if (!rec || rec.date !== today) return { date: today, blocks: 0 };
+        return { date: today, blocks: typeof rec.blocks === "number" ? rec.blocks : 0 };
+      }
+
+      function buildGrid() {
+        grid.innerHTML = "";
+        cells = [];
+        for (let i = 0; i < 9; i++) {
+          const cell = document.createElement("div");
+          cell.className = "nback-cell";
+          grid.appendChild(cell);
+          cells.push(cell);
+        }
+      }
+
+      function paintStatus() {
+        levelEl.textContent = String(level);
+        blockEl.textContent = Math.min(blockIndex + 1, BLOCKS_PER_SESSION) + " of " + BLOCKS_PER_SESSION;
+        bestEl.textContent = String(getBest(BEST_KEY));
+        const streak = readJson(STREAK_KEY, { count: 0, last: null });
+        streakEl.textContent = String(streak.count || 0);
+      }
+
+      function clearTimers() {
+        if (timer) { clearTimeout(timer); timer = null; }
+        if (stimTimer) { clearTimeout(stimTimer); stimTimer = null; }
+      }
+
+      function startSession() {
+        clearTimers();
+        blockIndex = 0;
+        blockScores = [];
+        resultsPanel.hidden = true;
+        gamePanel.hidden = false;
+        startBtn.hidden = true;
+        matchBtn.hidden = false;
+        startBlock();
+      }
+
+      function startBlock() {
+        const rec = dayRecord();
+        // The rung is in the seed as well as the date: a target is defined
+        // relative to n, so the same sequence is a different task at every
+        // level and two players on different rungs cannot share a board.
+        const rng = createRng(nbackDailySeed(rec.date, level, rec.blocks));
+        sequence = nbackGenerateSequence(BASE_TRIALS + level, level, TARGET_RATE, rng);
+        responses = sequence.map(function () { return false; });
+        trial = -1;
+        running = true;
+        buildGrid();
+        paintStatus();
+        matchBtn.disabled = false;
+        instructions.textContent =
+          "Block " + (blockIndex + 1) + " of " + BLOCKS_PER_SESSION + ": press Match when the square " +
+          "is in the same place it was " + level + " step" + (level === 1 ? "" : "s") + " ago.";
+        blockStartedAt = performance.now();
+        timer = setTimeout(nextTrial, 900);
+      }
+
+      /* Scheduled against the block's own start time rather than by adding up
+         timeouts, so a slow frame cannot make trial 20 arrive a second late. */
+      function scheduleNext() {
+        const due = blockStartedAt + (trial + 1) * TRIAL_MS;
+        const delay = Math.max(0, due - performance.now());
+        timer = setTimeout(nextTrial, delay);
+      }
+
+      function nextTrial() {
+        if (!running) return;
+        if (trial >= 0) cells[sequence[trial]].classList.remove("is-lit");
+        trial += 1;
+        if (trial >= sequence.length) return endBlock();
+        const cell = cells[sequence[trial]];
+        cell.classList.add("is-lit");
+        stimTimer = setTimeout(function () { cell.classList.remove("is-lit"); }, STIM_MS);
+        matchBtn.classList.remove("is-armed");
+        scheduleNext();
+      }
+
+      function respond() {
+        if (!running || trial < 0 || trial >= sequence.length) return;
+        if (responses[trial]) return; // one answer per trial; extra presses are not extra credit
+        responses[trial] = true;
+        matchBtn.classList.add("is-armed");
+      }
+
+      function endBlock() {
+        running = false;
+        clearTimers();
+        const score = nbackScore(sequence, level, responses);
+        blockScores.push({ score: score, level: level });
+
+        const rec = dayRecord();
+        writeJson(DAY_KEY, { date: rec.date, blocks: rec.blocks + 1 });
+
+        // The ladder is pure: the browser holds no rule of its own.
+        const next = nbackNextLevel(level, cleanStreak, score);
+        const moved = next.moved;
+        level = next.level;
+        cleanStreak = next.cleanStreak;
+        try { localStorage.setItem(LEVEL_KEY, String(level)); } catch (e) {}
+        const best = Math.max(getBest(BEST_KEY), level);
+        setBest(BEST_KEY, best);
+
+        blockIndex += 1;
+        if (blockIndex < BLOCKS_PER_SESSION) {
+          instructions.textContent = moved === "up"
+            ? "Three clean blocks — moving up to " + level + "-back."
+            : moved === "down"
+              ? "Two targets missed — dropping to " + level + "-back."
+              : "Block done: " + score.hits + " of " + score.targets + " targets caught, " +
+                score.falseAlarms + " false alarm" + (score.falseAlarms === 1 ? "" : "s") + ".";
+          timer = setTimeout(startBlock, 1600);
+          return;
+        }
+        finishSession();
+      }
+
+      function finishSession() {
+        matchBtn.hidden = true;
+        const totals = blockScores.reduce(function (acc, b) {
+          acc.hits += b.score.hits;
+          acc.misses += b.score.misses;
+          acc.falseAlarms += b.score.falseAlarms;
+          acc.correctRejections += b.score.correctRejections;
+          return acc;
+        }, { hits: 0, misses: 0, falseAlarms: 0, correctRejections: 0 });
+
+        const withD = blockScores.filter(function (b) { return typeof b.score.dPrime === "number"; });
+        const meanD = withD.length
+          ? withD.reduce(function (t, b) { return t + b.score.dPrime; }, 0) / withD.length
+          : 0;
+        const sessionD = Math.round(meanD * 100) / 100;
+        const scored = totals.hits + totals.misses + totals.falseAlarms + totals.correctRejections;
+        const accuracy = scored ? (totals.hits + totals.correctRejections) / scored : 0;
+
+        const priorDist = getDistribution(DIST_KEY);
+        const priorBestD = priorDist.length ? Math.max.apply(null, priorDist) : null;
+        const dist = pushDistribution(priorDist, sessionD);
+        setDistribution(DIST_KEY, dist);
+        const history = pushHistory(getHistory(HISTORY_KEY), {
+          score: sessionD.toFixed(2),
+          date: new Date().toISOString(),
+        });
+        setHistory(HISTORY_KEY, history);
+
+        const streak = nbackUpdateStreak(readJson(STREAK_KEY, { count: 0, last: null }), nbackDayKey());
+        writeJson(STREAK_KEY, streak);
+
+        dEl.textContent = sessionD.toFixed(2);
+        badgeEl.textContent = level + "-back";
+        tierEl.textContent = nbackRatingTier(level);
+        hitsEl.textContent = totals.hits + " of " + (totals.hits + totals.misses);
+        missesEl.textContent = String(totals.misses);
+        faEl.textContent = String(totals.falseAlarms);
+        accEl.textContent = Math.round(accuracy * 100) + "%";
+        ladderEl.textContent = "You finished at " + level + "-back. Three clean blocks in a row move " +
+          "you up a rung; two missed targets in one block move you down.";
+        streakLineEl.textContent = streak.count === 1
+          ? "Day 1 of your streak. Come back tomorrow to make it two."
+          : "Daily streak: " + streak.count + " days.";
+
+        renderTrend(trendEl, {
+          score: sessionD.toFixed(2),
+          isNewBest: priorBestD !== null && sessionD > priorBestD,
+          priorDist: priorDist,
+          dist: dist,
+          unitLabel: "d′",
+        });
+        renderHistoryList(historyList, history, "d′");
+        paintStatus();
+
+        gamePanel.hidden = true;
+        resultsPanel.hidden = false;
+      }
+
+      matchBtn.addEventListener("click", respond);
+      /* Space and A are the two keys every n-back trainer binds; the button is
+         still the primary control, and it is a real <button> so nothing here is
+         the only way in. */
+      document.addEventListener("keydown", function (e) {
+        if (!running) return;
+        if (e.key === " " || e.key === "Spacebar" || e.key.toLowerCase() === "a") {
+          e.preventDefault();
+          respond();
+        }
+      });
+      startBtn.addEventListener("click", startSession);
+      restartBtn.addEventListener("click", startSession);
+      /* A tab switch pauses nothing in a browser's timers reliably, and a block
+         that ran while the page was hidden is not a measurement. Abandon it. */
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden || !running) return;
+        running = false;
+        clearTimers();
+        matchBtn.hidden = true;
+        startBtn.hidden = false;
+        startBtn.textContent = "Start again";
+        instructions.textContent =
+          "Block abandoned — this tab lost focus, and a block that ran in the background is not a " +
+          "measurement. Start again when you are ready.";
+      });
+
+      buildGrid();
+      paintStatus();
+      if (dayNoteEl) {
+        const rec = dayRecord();
+        dayNoteEl.textContent = rec.blocks
+          ? "You have already run " + rec.blocks + " block" + (rec.blocks === 1 ? "" : "s") +
+            " today; the next one carries on where they left off."
+          : "Today's blocks are dealt from today's date and your current rung, so reloading will " +
+            "not deal you an easier board.";
+      }
+      renderHistoryList(historyList, getHistory(HISTORY_KEY), "d′");
+    })();
   })();
 }
 
@@ -1438,5 +1998,16 @@ if (typeof module !== "undefined" && module.exports) {
     verbalPickWord: verbalPickWord,
     verbalCheckAnswer: verbalCheckAnswer,
     verbalRatingTier: verbalRatingTier,
+    inverseNormalCdf: inverseNormalCdf,
+    nbackGenerateSequence: nbackGenerateSequence,
+    nbackIsTarget: nbackIsTarget,
+    nbackCheckResponse: nbackCheckResponse,
+    nbackScore: nbackScore,
+    nbackNextLevel: nbackNextLevel,
+    nbackDailySeed: nbackDailySeed,
+    nbackDayKey: nbackDayKey,
+    nbackDaysBetween: nbackDaysBetween,
+    nbackUpdateStreak: nbackUpdateStreak,
+    nbackRatingTier: nbackRatingTier,
   };
 }
