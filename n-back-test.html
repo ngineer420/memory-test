@@ -90,7 +90,7 @@
 <main id="main">
   <div class="solo-head">
     <h1>N-Back Test</h1>
-    <p class="solo-intro">A square jumps around a 3&times;3 grid, one position every two and a half seconds. Press <strong>Match</strong> whenever it lands where it was <em>n</em> steps ago. Unlike the other tests here, this one is not a ladder you fall off — it is a session you repeat, and it gets harder as you get better.</p>
+    <p class="solo-intro">A square jumps around a 3&times;3 grid, one position every three seconds. Press <strong>Match</strong> whenever it lands where it was <em>n</em> steps ago. Unlike the other tests here, this one is not a ladder you fall off — it is a session you repeat, and it gets harder as you get better.</p>
   </div>
 
   <div class="game-wrap">
@@ -104,11 +104,20 @@
       <p class="game-instructions" id="nback-instructions" aria-live="polite">Watch the square move. Press Match when it is in the same place it was <em>n</em> steps ago — three blocks make a session.</p>
       <div class="nback-grid" id="nback-grid" aria-hidden="true"></div>
       <div class="nback-respond">
-        <button type="button" class="primary" id="nback-match" hidden>Match <span style="opacity:.7;font-size:13px;">(space)</span></button>
+        <button type="button" class="primary" id="nback-match" hidden>Match <span class="nback-key">(space)</span></button>
       </div>
+      <!-- One dot per trial, filling in left to right as the block runs. It is
+           the only thing on screen between stimuli, so it doubles as proof the
+           block is still moving during the 2.5s the grid sits dark. -->
+      <div class="nback-trail" id="nback-trail" aria-hidden="true" hidden></div>
+      <p class="nback-tally" id="nback-tally" aria-live="off" hidden></p>
       <div class="game-controls">
         <button type="button" class="primary" id="nback-start">Start session</button>
       </div>
+      <label class="nback-optin" for="nback-feedback">
+        <input type="checkbox" id="nback-feedback" checked>
+        <span>Mark each trial right or wrong as I go</span>
+      </label>
       <p class="nback-note" id="nback-day-note"></p>
     </div>
 
@@ -140,8 +149,12 @@
 
   <section class="solo-articles" aria-labelledby="how-heading">
     <h2 id="how-heading">How the n-back test works</h2>
-    <p>Each trial shows one lit square for half a second. Your job is to compare it with the square from <em>n</em> trials ago and press Match if they are in the same place. At 2-back you are holding two positions and updating both every two and a half seconds; at 3-back, three. That constant discarding of the oldest item while a new one arrives is what makes n-back a working-memory task rather than a memory-span one — nothing is ever safely stored.</p>
-    <p>A session is three blocks of about twenty trials. The first <em>n</em> trials of each block have nothing behind them to match, so they are dealt but never scored.</p>
+    <p>Each trial shows one lit square for half a second. Your job is to compare it with the square from <em>n</em> trials ago and press Match if they are in the same place. At 2-back you are holding two positions and updating both every three seconds; at 3-back, three. That constant discarding of the oldest item while a new one arrives is what makes n-back a working-memory task rather than a memory-span one — nothing is ever safely stored.</p>
+    <p>A session is three blocks of about twenty trials. The first <em>n</em> trials of each block have nothing behind them to match, so they are dealt but never scored — they show as hollow dots in the row beneath the grid.</p>
+
+    <h3>Reading the row of dots</h3>
+    <p>Each trial gets a dot. The outlined one is the trial you are on, which is worth watching: the square is only lit for half a second, so most of a trial is a dark grid, and the moving dot is how you can see the block is still running. Pressing Match marks that trial immediately, whether or not you were right, so a press is never silent.</p>
+    <p>By default the dots also settle into a verdict as each trial closes: a filled dot for a target you caught, a hollow ring for one you let past, a struck-through dot for a press on a trial that was not a target, and a faint dot for a non-target you correctly left alone. A running count sits under the row. If you would rather run a block with no hints — a target you missed is still information about the sequence — turn off <em>Mark each trial right or wrong as I go</em> and the dots stay neutral until the block ends, then resolve all at once.</p>
 
     <h3>The level moves on its own</h3>
     <p>Three clean blocks in a row — every target caught, no false alarms — and you go up a rung. Two missed targets in a single block and you drop one. Your rung is remembered between visits, so the task keeps sitting just past what you can comfortably do, which is the only setting at which this kind of practice is worth anything.</p>
