@@ -672,8 +672,136 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
 /* The response button is the whole interaction, so it is sized like one rather
    than tucked in with the secondary controls. */
 .nback-respond { display: flex; justify-content: center; margin-top: 16px; }
-.nback-respond button { min-width: 220px; font-size: 17px; padding: 14px 20px; }
-.nback-respond button.is-armed { background: var(--accent-dim); border-color: var(--accent); }
+.nback-respond button { min-width: 220px; font-size: 17px; padding: 14px 20px; position: relative; }
+.nback-key { opacity: .7; font-size: 13px; }
+/* Press feedback. The button is accent-filled at rest, so a press cannot be
+   signalled by a neighbouring shade of the same colour — nothing short of a
+   change in ring, scale and hue together reads as an event on a button that is
+   already green. Each state carries its own animation, so two presses on
+   consecutive trials read as two events rather than one held state. */
+/* Registered, verdict not stated — the state a lead-in trial gets, and the only
+   button state there is with verdicts turned off. Neutral grey on purpose: a
+   ring in the accent is a shade of the button it surrounds, and would be read
+   as a green light. It is the same grey the answered dot takes. */
+.nback-respond button.is-pressed {
+  animation: nback-press .18s ease-out;
+  box-shadow: 0 0 0 4px var(--text-faint);
+  filter: brightness(.88);
+}
+.nback-respond button.is-right {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: nback-press .18s ease-out;
+}
+.nback-respond button.is-wrong {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 40%, transparent);
+  animation: nback-shake .22s ease-out;
+}
+@keyframes nback-press {
+  0% { transform: scale(1); }
+  45% { transform: scale(.94); }
+  100% { transform: scale(1); }
+}
+@keyframes nback-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* ---- the per-trial trail ---- */
+/* One dot per trial. Between stimuli the grid is dark for 2.5 of every 3
+   seconds, and with nothing else moving the block reads as frozen — the
+   advancing cursor here is what tells you it is still running.
+
+   One row, always: a wrapping trail orphans the last two or three trials on a
+   line of their own, and since the run of dots is read as a timeline, a stray
+   second row reads as a second block. The column count comes from JS because it
+   is the trial count, which changes with n. */
+.nback-trail {
+  display: grid;
+  grid-template-columns: repeat(var(--trail-count, 22), 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 5px;
+  width: 100%;
+  max-width: 380px;
+  margin: 16px auto 0;
+}
+.nback-dot {
+  width: 100%;
+  max-width: 12px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  position: relative;
+  transition: background .12s linear, border-color .12s linear, transform .12s ease;
+}
+/* Dealt but unscorable: the first n trials have nothing behind them to match. */
+.nback-dot.is-unscored { border-style: dashed; opacity: .5; }
+/* The trial running right now. */
+.nback-dot.is-current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+  transform: scale(1.15);
+}
+/* Answered, verdict withheld — either feedback is off, or the trial has not
+   closed yet. Distinct from every verdict colour so it never reads as one. */
+.nback-dot.is-pressed { background: var(--text-faint); border-color: var(--text-faint); }
+/* Verdicts withheld: this trial has closed, and that is all it says — a miss and
+   a correct rejection are given the same mark, so nothing is given away. */
+.nback-dot.is-done { border-color: var(--text-faint); }
+.nback-dot.is-hit { background: var(--accent); border-color: var(--accent); }
+.nback-dot.is-correct { background: var(--border); border-color: var(--border); }
+/* A target that went past: a hollow ring in the miss colour, so "empty where
+   something should be" is the shape as well as the hue. */
+.nback-dot.is-miss { background: transparent; border-color: var(--danger); border-width: 2.5px; }
+/* A press on a non-target: filled and struck through. */
+.nback-dot.is-false { background: var(--danger); border-color: var(--danger); }
+.nback-dot.is-false::after {
+  content: "";
+  position: absolute;
+  inset: 45% -2px;
+  border-top: 2px solid var(--bg-raised);
+  transform: rotate(-45deg);
+}
+/* A phone fits the same trial count in less width, so the gap gives way before
+   the dots do — a 3px dot is a smudge, a 3px gap is still a gap. */
+@media (max-width: 480px) {
+  .nback-trail { gap: 3px; }
+}
+.nback-tally {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 10px 0 0;
+  min-height: 1.2em;
+}
+.nback-tally b { color: var(--text); font-weight: 700; }
+/* The opt-out for the verdict colours. Sits under the controls because it is a
+   setting for the next block, not part of the current one. */
+.nback-optin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* The label is the tap target, not the box inside it: the padding and
+     min-height are what carry it past the 24px minimum on a phone. */
+  padding: 6px 10px;
+  min-height: 32px;
+  margin: 8px auto 0;
+  width: fit-content;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.nback-optin input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+.nback-optin input:disabled { cursor: default; }
+.nback-optin:has(input:disabled) { cursor: default; opacity: .6; }
 .nback-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -700,7 +828,12 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
 .nback-fig .fig-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); margin-top: 3px; }
 .nback-note { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
 @media (prefers-reduced-motion: reduce) {
-  .nback-cell { transition: none; }
+  .nback-cell, .nback-dot { transition: none; }
+  /* Keep the colour and the ring, drop the movement — the press signal must
+     survive this query, since it is the only confirmation a press landed. */
+  .nback-respond button.is-pressed,
+  .nback-respond button.is-right,
+  .nback-respond button.is-wrong { animation: none; }
 }
 
 /* ---------- verbal memory ---------- */

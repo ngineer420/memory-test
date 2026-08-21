@@ -1703,6 +1703,9 @@ if (typeof document !== "undefined") {
       const ladderEl = document.getElementById("nback-ladder");
       const streakLineEl = document.getElementById("nback-streak-line");
       const dayNoteEl = document.getElementById("nback-day-note");
+      const trailEl = document.getElementById("nback-trail");
+      const tallyEl = document.getElementById("nback-tally");
+      const feedbackBox = document.getElementById("nback-feedback");
 
       const BEST_KEY = "cmt-nback-best";       // highest rung ever reached (an integer)
       const HISTORY_KEY = "cmt-nback-history"; // last 10 sessions, scored in d'
@@ -1710,12 +1713,18 @@ if (typeof document !== "undefined") {
       const LEVEL_KEY = "cmt-nback-level";     // the rung you are on, kept between days
       const STREAK_KEY = "cmt-nback-streak";
       const DAY_KEY = "cmt-nback-day";
+      const FEEDBACK_KEY = "cmt-nback-feedback"; // "0" opts out of per-trial verdicts
 
       const BLOCKS_PER_SESSION = 3;
       const BASE_TRIALS = 20;      // plus n, since the first n trials cannot be scored
       const TARGET_RATE = 0.3;
-      const TRIAL_MS = 2500;
+      /* 3000ms is the interval the established n-back trainers settled on, and
+         it is the ceiling on how long you have to decide. The 500ms stimulus
+         leaves 2500ms of dark grid every trial, which is why the board is not
+         the only thing moving on the page. */
+      const TRIAL_MS = 3000;
       const STIM_MS = 500;
+      const FLASH_MS = 520;
 
       let level = readLevel();
       let cleanStreak = 0;
@@ -1729,10 +1738,21 @@ if (typeof document !== "undefined") {
       let stimTimer = null;
       let blockStartedAt = 0;
       let cells = [];
+      let dots = [];               // one per trial, mirrors `sequence`
+      let settled = [];            // trials already booked into `tally`
+      let tally = { hits: 0, misses: 0, falseAlarms: 0 };
+      let blockLevel = 0;          // the n this block was dealt at; `level` moves at block end
+      let feedbackOn = readFeedback();
+      let flashTimer = null;
 
       function readLevel() {
         const n = parseInt(localStorage.getItem(LEVEL_KEY), 10);
         return isNaN(n) || n < 1 ? 2 : Math.min(n, 9);
+      }
+      /* Per-trial verdicts are on unless explicitly turned off, so a first-time
+         player is never left wondering whether a press landed. */
+      function readFeedback() {
+        try { return localStorage.getItem(FEEDBACK_KEY) !== "0"; } catch (e) { return true; }
       }
       function readJson(key, fallback) {
         try {
@@ -1767,6 +1787,107 @@ if (typeof document !== "undefined") {
         }
       }
 
+      /* ---- the per-trial trail ---- */
+
+      function buildTrail() {
+        if (!trailEl) return;
+        trailEl.hidden = false;
+        trailEl.innerHTML = "";
+        // The row is a grid of exactly one column per trial, so it never wraps.
+        trailEl.style.setProperty("--trail-count", String(sequence.length));
+        dots = [];
+        for (let i = 0; i < sequence.length; i++) {
+          const dot = document.createElement("div");
+          // The first n trials have nothing behind them to match, so they are
+          // dealt and shown but can never carry a verdict.
+          dot.className = "nback-dot" + (i < blockLevel ? " is-unscored" : "");
+          trailEl.appendChild(dot);
+          dots.push(dot);
+        }
+        if (tallyEl) tallyEl.hidden = false;
+      }
+
+      function paintVerdict(dot, verdict) {
+        dot.classList.remove("is-pressed", "is-done", "is-hit", "is-miss", "is-false", "is-correct");
+        dot.classList.add(
+          verdict === "hit" ? "is-hit"
+            : verdict === "miss" ? "is-miss"
+              : verdict === "falseAlarm" ? "is-false"
+                : "is-correct"
+        );
+      }
+
+      /* Book a trial's verdict exactly once. A press settles its own trial the
+         instant it lands — pressing on a target is a hit and pressing on a
+         non-target is a false alarm, and neither can be taken back. Only a trial
+         with no press has to wait for the window to close. */
+      function settle(index, verdict) {
+        if (settled[index]) return;
+        settled[index] = true;
+        // Correct rejections and the lead-in trials (verdict null) are deliberately
+        // uncounted: the tally names the three things worth watching, not all five.
+        if (verdict === "hit") tally.hits++;
+        else if (verdict === "miss") tally.misses++;
+        else if (verdict === "falseAlarm") tally.falseAlarms++;
+        if (!dots[index] || verdict === null) return;
+        if (feedbackOn) paintVerdict(dots[index], verdict);
+        // Verdicts withheld: say the trial is closed and nothing more. A miss and
+        // a correct rejection get the identical mark, so no answer leaks.
+        else if (!responses[index]) dots[index].classList.add("is-done");
+      }
+
+      function closeTrial(index) {
+        if (index < 0 || index >= dots.length) return;
+        dots[index].classList.remove("is-current");
+        settle(index, nbackCheckResponse(sequence, blockLevel, index, Boolean(responses[index])));
+      }
+
+      /* Used when verdicts were withheld during the block: once it is over there
+         is nothing left to give away, so the whole row resolves at once. */
+      function revealTrail() {
+        for (let i = 0; i < dots.length; i++) {
+          const verdict = nbackCheckResponse(sequence, blockLevel, i, Boolean(responses[i]));
+          if (verdict !== null) paintVerdict(dots[i], verdict);
+        }
+      }
+
+      function paintTally(final) {
+        if (!tallyEl) return;
+        if (feedbackOn || final) {
+          tallyEl.innerHTML = "Caught <b>" + tally.hits + "</b> &middot; missed <b>" + tally.misses +
+            "</b> &middot; false alarms <b>" + tally.falseAlarms + "</b>";
+          return;
+        }
+        let answered = 0;
+        for (let i = 0; i < responses.length; i++) if (responses[i]) answered++;
+        tallyEl.innerHTML = "Trial <b>" + Math.min(trial + 1, sequence.length) + "</b> of <b>" +
+          sequence.length + "</b> &middot; <b>" + answered + "</b> answered &mdash; verdicts at the end of the block";
+      }
+
+      function hideTrail() {
+        if (trailEl) { trailEl.hidden = true; trailEl.innerHTML = ""; }
+        if (tallyEl) { tallyEl.hidden = true; tallyEl.innerHTML = ""; }
+        dots = [];
+      }
+
+      /* ---- the press signal ---- */
+      /* The button is already accent-filled, so "you pressed" cannot be a tint
+         shift; it is a ring, a scale and — when verdicts are on — a colour. */
+      function clearFlash() {
+        if (flashTimer) { clearTimeout(flashTimer); flashTimer = null; }
+        matchBtn.classList.remove("is-pressed", "is-right", "is-wrong");
+      }
+
+      function flashButton(cls) {
+        clearFlash();
+        // Re-adding a class in the same frame will not restart its animation, so
+        // force a reflow between the removal and the add: two presses on
+        // consecutive trials have to read as two separate events.
+        void matchBtn.offsetWidth;
+        matchBtn.classList.add(cls);
+        flashTimer = setTimeout(clearFlash, FLASH_MS);
+      }
+
       function paintStatus() {
         levelEl.textContent = String(level);
         blockEl.textContent = Math.min(blockIndex + 1, BLOCKS_PER_SESSION) + " of " + BLOCKS_PER_SESSION;
@@ -1797,13 +1918,22 @@ if (typeof document !== "undefined") {
         // relative to n, so the same sequence is a different task at every
         // level and two players on different rungs cannot share a board.
         const rng = createRng(nbackDailySeed(rec.date, level, rec.blocks));
+        blockLevel = level;
         sequence = nbackGenerateSequence(BASE_TRIALS + level, level, TARGET_RATE, rng);
         responses = sequence.map(function () { return false; });
+        settled = sequence.map(function () { return false; });
+        tally = { hits: 0, misses: 0, falseAlarms: 0 };
         trial = -1;
         running = true;
         buildGrid();
+        buildTrail();
+        paintTally();
         paintStatus();
-        matchBtn.disabled = false;
+        clearFlash();
+        matchBtn.disabled = true; // nothing to answer until trial 0 is dealt
+        // Locked for the duration: flipping it mid-block would leave half the
+        // row marked and half of it blank, which is worse than either setting.
+        if (feedbackBox) feedbackBox.disabled = true;
         instructions.textContent =
           "Block " + (blockIndex + 1) + " of " + BLOCKS_PER_SESSION + ": press Match when the square " +
           "is in the same place it was " + level + " step" + (level === 1 ? "" : "s") + " ago.";
@@ -1821,13 +1951,18 @@ if (typeof document !== "undefined") {
 
       function nextTrial() {
         if (!running) return;
-        if (trial >= 0) cells[sequence[trial]].classList.remove("is-lit");
+        if (trial >= 0) {
+          cells[sequence[trial]].classList.remove("is-lit");
+          closeTrial(trial); // the window on that trial has just shut
+        }
         trial += 1;
         if (trial >= sequence.length) return endBlock();
+        if (trial === 0) matchBtn.disabled = false;
         const cell = cells[sequence[trial]];
         cell.classList.add("is-lit");
         stimTimer = setTimeout(function () { cell.classList.remove("is-lit"); }, STIM_MS);
-        matchBtn.classList.remove("is-armed");
+        if (dots[trial]) dots[trial].classList.add("is-current");
+        paintTally();
         scheduleNext();
       }
 
@@ -1835,12 +1970,26 @@ if (typeof document !== "undefined") {
         if (!running || trial < 0 || trial >= sequence.length) return;
         if (responses[trial]) return; // one answer per trial; extra presses are not extra credit
         responses[trial] = true;
-        matchBtn.classList.add("is-armed");
+        if (dots[trial]) dots[trial].classList.add("is-pressed");
+        const verdict = nbackCheckResponse(sequence, blockLevel, trial, true);
+        settle(trial, verdict);
+        // verdict is null on the lead-in trials, where a press is neither right
+        // nor wrong: acknowledge it without calling it either.
+        flashButton(feedbackOn && verdict === "hit" ? "is-right"
+          : feedbackOn && verdict === "falseAlarm" ? "is-wrong"
+            : "is-pressed");
+        paintTally();
       }
 
       function endBlock() {
         running = false;
         clearTimers();
+        clearFlash();
+        // Before the ladder moves `level`: the trail is scored at the n this
+        // block was actually dealt at.
+        if (!feedbackOn) revealTrail();
+        paintTally(true);
+        if (feedbackBox) feedbackBox.disabled = false;
         const score = nbackScore(sequence, level, responses);
         blockScores.push({ score: score, level: level });
 
@@ -1858,6 +2007,9 @@ if (typeof document !== "undefined") {
 
         blockIndex += 1;
         if (blockIndex < BLOCKS_PER_SESSION) {
+          // Between blocks the button is live-looking but dead — startBlock is
+          // 1.6s away. Grey it out rather than swallow presses silently.
+          matchBtn.disabled = true;
           instructions.textContent = moved === "up"
             ? "Three clean blocks — moving up to " + level + "-back."
             : moved === "down"
@@ -1872,6 +2024,8 @@ if (typeof document !== "undefined") {
 
       function finishSession() {
         matchBtn.hidden = true;
+        clearFlash();
+        hideTrail();
         const totals = blockScores.reduce(function (acc, b) {
           acc.hits += b.score.hits;
           acc.misses += b.score.misses;
@@ -1928,6 +2082,14 @@ if (typeof document !== "undefined") {
         resultsPanel.hidden = false;
       }
 
+      if (feedbackBox) {
+        feedbackBox.checked = feedbackOn;
+        feedbackBox.addEventListener("change", function () {
+          feedbackOn = feedbackBox.checked;
+          try { localStorage.setItem(FEEDBACK_KEY, feedbackOn ? "1" : "0"); } catch (e) {}
+        });
+      }
+
       matchBtn.addEventListener("click", respond);
       /* Space and A are the two keys every n-back trainer binds; the button is
          still the primary control, and it is a real <button> so nothing here is
@@ -1947,6 +2109,9 @@ if (typeof document !== "undefined") {
         if (!document.hidden || !running) return;
         running = false;
         clearTimers();
+        clearFlash();
+        hideTrail();
+        if (feedbackBox) feedbackBox.disabled = false;
         matchBtn.hidden = true;
         startBtn.hidden = false;
         startBtn.textContent = "Start again";
