@@ -937,6 +937,68 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
 .history-date { color: var(--text-faint); }
 .history-empty { color: var(--text-faint); justify-content: flex-start !important; }
 
+/* ---------- share buttons ---------- */
+/* A secondary control beside "Play again". It reads as a button, not a link,
+   so the copied-state label swap does not shift the row. */
+.game-controls .share-btn { margin-left: 10px; padding: 11px 18px; font-size: 14px; min-width: 132px; }
+@media (max-width: 420px) {
+  .game-controls .share-btn { margin-left: 0; margin-top: 10px; display: inline-block; }
+}
+
+/* ---------- brain score card (homepage) ---------- */
+.brain-section { padding-top: 0; padding-bottom: 0; }
+.brain-section h2 { margin-top: 0; }
+.brain-card { max-width: 640px; margin: 0 auto; }
+.brain-head h2 { font-size: 18px; margin: 0 0 6px; }
+.brain-note { margin: 0 0 16px; color: var(--text-dim); font-size: 13.5px; max-width: 58ch; }
+.brain-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: start; }
+.brain-value {
+  font-family: var(--mono);
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  min-width: 2.2ch;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-soft);
+  color: var(--text-faint);
+}
+.brain-card.is-ready .brain-value { color: var(--accent-dim); }
+:root[data-theme="dark"] .brain-card.is-ready .brain-value { color: var(--accent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brain-card.is-ready .brain-value { color: var(--accent); } }
+.brain-card .brain-meta { margin: 4px 0 12px; font-size: 14.5px; font-weight: 600; color: var(--text); }
+.brain-parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.brain-part {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.brain-part-label { color: var(--text-dim); }
+.brain-part-value { font-family: var(--mono); font-weight: 700; }
+.brain-part.is-unplayed .brain-part-value { color: var(--text-faint); font-weight: 500; }
+.brain-actions { margin-top: 14px; }
+.brain-actions .share-btn { padding: 10px 18px; font-size: 14px; }
+@media (max-width: 520px) {
+  .brain-body { grid-template-columns: 1fr; }
+  .brain-value { justify-self: start; }
+  .brain-parts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* ---------- about section ---------- */
 .about-section { padding-top: 10px; }
 .about-section h2 { font-size: 18px; margin-top: 30px; }

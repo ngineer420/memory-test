@@ -14,6 +14,8 @@ Each mode tracks a best score and a rolling history of your last 10 attempts (bo
 
 After each round the results panel also shows a **score trend**: a "new personal best" callout, a percentile against your own previous attempts, and an SVG sparkline of your last 20 scores. The percentile is drawn from a longer per-game distribution (`cmt-<game>-dist`, capped at 200 attempts) kept alongside the 10-entry display history. It is explicitly a *personal* percentile — the site has no backend and therefore no idea how anyone else scored, and the copy says so.
 
+Every results panel has a **Share result** button. On a phone it opens the system share sheet. On a desktop it copies a one-line text card to the clipboard. The homepage also shows a **Brain score** card: each best score maps to 0-100 against the top rating tier of its test, and the played tests are averaged. The card shows the score after two or more tests, and the card has its own share button with the per-test breakdown.
+
 Everything runs client-side — no backend, no build step, no uploads. Deployed as static files on GitHub Pages.
 
 An `articles/` directory holds four original long-form articles (benchmarks, technique guide, the Ayumu/Kyoto University history behind the "chimp test" name, and how the scoring/difficulty logic works) linked from a "Learn more" section on the homepage — an AdSense content-depth pass to support the tool with genuine written content.

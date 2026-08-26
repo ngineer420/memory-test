@@ -131,6 +131,7 @@
           <div class="score-trend" id="chimp-trend" hidden></div>
         <div class="game-controls" style="margin-top:0;">
           <button type="button" class="primary" id="chimp-restart">Play again</button>
+          <button type="button" class="share-btn" id="chimp-share">Share result</button>
         </div>
         <div class="history" id="chimp-history">
           <h3>Last 10 attempts</h3>
@@ -161,6 +162,7 @@
           <div class="score-trend" id="sequence-trend" hidden></div>
         <div class="game-controls" style="margin-top:0;">
           <button type="button" class="primary" id="sequence-restart">Play again</button>
+          <button type="button" class="share-btn" id="sequence-share">Share result</button>
         </div>
         <div class="history" id="sequence-history">
           <h3>Last 10 attempts</h3>
@@ -198,6 +200,7 @@
           <div class="score-trend" id="number-trend" hidden></div>
         <div class="game-controls" style="margin-top:0;">
           <button type="button" class="primary" id="number-restart">Play again</button>
+          <button type="button" class="share-btn" id="number-share">Share result</button>
         </div>
         <div class="history" id="number-history">
           <h3>Last 10 attempts</h3>
@@ -229,6 +232,7 @@
           <div class="score-trend" id="visual-trend" hidden></div>
         <div class="game-controls" style="margin-top:0;">
           <button type="button" class="primary" id="visual-restart">Play again</button>
+          <button type="button" class="share-btn" id="visual-share">Share result</button>
         </div>
         <div class="history" id="visual-history">
           <h3>Last 10 attempts</h3>
@@ -266,10 +270,30 @@
           <div class="score-trend" id="verbal-trend" hidden></div>
         <div class="game-controls" style="margin-top:0;">
           <button type="button" class="primary" id="verbal-restart">Play again</button>
+          <button type="button" class="share-btn" id="verbal-share">Share result</button>
         </div>
         <div class="history" id="verbal-history">
           <h3>Last 10 attempts</h3>
           <ol class="history-list" id="verbal-history-list"></ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-narrow brain-section" aria-labelledby="brain-score-heading">
+    <div class="panel brain-card" id="brain-score">
+      <div class="brain-head">
+        <h2 id="brain-score-heading">Brain score</h2>
+        <p class="brain-note">One number across all six tests. Each best score maps to 0-100 on the scale of its test, then the tests you played are averaged. Stored on this device only.</p>
+      </div>
+      <div class="brain-body">
+        <div class="brain-value" id="brain-score-value" aria-hidden="true">&mdash;</div>
+        <div class="brain-detail">
+          <p class="brain-meta" id="brain-score-meta" aria-live="polite">Play 2 more tests to get a brain score &middot; 0 of 6 games played</p>
+          <ul class="brain-parts" id="brain-score-parts" aria-label="Best score per test"></ul>
+          <div class="brain-actions">
+            <button type="button" class="share-btn" id="brain-score-share" hidden>Share brain score</button>
+          </div>
         </div>
       </div>
     </div>
