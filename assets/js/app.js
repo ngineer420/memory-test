@@ -604,6 +604,79 @@ function nbackRatingTier(n) {
   return lookupTier(NBACK_TIERS, n);
 }
 
+/* ---- Brain score and share text ----
+
+   One number across the six tests. Each best score is normalized to 0-100
+   against the top rating tier of that test (the score where the tier list
+   ends), then the played tests are averaged. A test counts as played only
+   when a best score exists for it, so a 0 from a failed first round still
+   counts and an untouched test does not drag the average down. */
+
+const SITE_URL = "https://chimpmemory.com";
+
+/* `max` is the score that maps to 100. It is the floor of the top tier in
+   each test's rating table above, so the two scales agree. `unit` is the
+   noun after a shared score. */
+const BRAIN_GAMES = [
+  { key: "chimp",    label: "Chimp",    max: 12,  unit: "tiles",  path: "/chimp-test" },
+  { key: "sequence", label: "Sequence", max: 18,  unit: "tiles",  path: "/sequence-memory-test" },
+  { key: "number",   label: "Number",   max: 16,  unit: "digits", path: "/number-memory-test" },
+  { key: "visual",   label: "Visual",   max: 15,  unit: "levels", path: "/visual-memory-test" },
+  { key: "verbal",   label: "Verbal",   max: 100, unit: "words",  path: "/verbal-memory-test" },
+  { key: "nback",    label: "N-back",   max: 6,   unit: "back",   path: "/n-back-test" },
+];
+
+/** Map one raw best score onto 0-100 for its test. Clamped at both ends. */
+function normalizeScore(gameKey, score) {
+  const game = BRAIN_GAMES.filter(function (g) { return g.key === gameKey; })[0];
+  if (!game || typeof score !== "number" || isNaN(score)) return 0;
+  const pct = Math.round((score / game.max) * 100);
+  return Math.max(0, Math.min(100, pct));
+}
+
+/**
+ * Combine per-test best scores into one brain score.
+ *
+ * `bests` maps a game key to a number, or to null for a test never played.
+ * Returns { score, played, total, parts } where `score` is null until at
+ * least one test is played and `parts` lists every played test in site order.
+ */
+function brainScore(bests) {
+  const parts = [];
+  BRAIN_GAMES.forEach(function (g) {
+    const raw = bests ? bests[g.key] : null;
+    if (typeof raw !== "number" || isNaN(raw)) return;
+    parts.push({ key: g.key, label: g.label, best: raw, norm: normalizeScore(g.key, raw) });
+  });
+  const played = parts.length;
+  const score = played
+    ? Math.round(parts.reduce(function (t, p) { return t + p.norm; }, 0) / played)
+    : null;
+  return { score: score, played: played, total: BRAIN_GAMES.length, parts: parts };
+}
+
+/** The text card behind the homepage "Share" button. */
+function brainShareText(result) {
+  const breakdown = result.parts.map(function (p) {
+    return p.label + " " + p.best;
+  }).join(" · ");
+  return "My chimpmemory.com brain score: " + result.score + "/100. " +
+    breakdown + ". Try it: " + SITE_URL;
+}
+
+/**
+ * The text card behind a per-test "Share result" button. `scoreText` is the
+ * already formatted score, for example "12 tiles" or "d′ 1.85 at 3-back".
+ * `tier` is optional and lands in parentheses.
+ */
+function gameShareText(gameKey, scoreText, tier) {
+  const game = BRAIN_GAMES.filter(function (g) { return g.key === gameKey; })[0];
+  if (!game) return "";
+  const rating = tier ? " (" + tier + ")" : "";
+  return "My chimpmemory.com " + game.label + " test score: " + scoreText + rating +
+    ". Try it: " + SITE_URL + game.path;
+}
+
 /* ===================================================================== */
 /* ============================= DOM WIRING ============================= */
 /* ===================================================================== */
@@ -955,6 +1028,141 @@ if (typeof document !== "undefined") {
       });
     }
 
+    /* ---- share buttons and the brain score card ---- */
+
+    /** Best score for one test, or null when that test was never played. */
+    function readBest(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw === null) return null;
+        const n = parseInt(raw, 10);
+        return isNaN(n) ? null : n;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function collectBests() {
+      const bests = {};
+      BRAIN_GAMES.forEach(function (g) {
+        bests[g.key] = readBest("cmt-" + g.key + "-best");
+      });
+      return bests;
+    }
+
+    /* Phones get the system share sheet. Everything else gets the clipboard,
+       because the desktop share sheet has no target most people use. */
+    function isMobile() {
+      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+    }
+
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(
+          function () { return true; },
+          function () { return copyTextFallback(text); }
+        );
+      }
+      return Promise.resolve(copyTextFallback(text));
+    }
+
+    function copyTextFallback(text) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function flashButton(btn, label) {
+      const original = btn.dataset.label || btn.textContent;
+      btn.dataset.label = original;
+      btn.textContent = label;
+      clearTimeout(btn._flashTimer);
+      btn._flashTimer = setTimeout(function () {
+        btn.textContent = original;
+      }, 1800);
+    }
+
+    function shareResult(btn, text) {
+      if (isMobile() && navigator.share) {
+        navigator.share({ text: text }).catch(function () {
+          /* the user closed the sheet */
+        });
+        return;
+      }
+      copyText(text).then(function (ok) {
+        flashButton(btn, ok ? "Copied" : "Copy failed");
+      });
+    }
+
+    /** Wire one share button. `getText` runs at click time. */
+    function initShare(id, getText) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        const text = getText();
+        if (text) shareResult(btn, text);
+      });
+    }
+
+    /* The homepage card. It renders from stored bests on load and again after
+       every finished round, so the number moves without a reload. */
+    const brainCard = document.getElementById("brain-score");
+    const brainValueEl = document.getElementById("brain-score-value");
+    const brainMetaEl = document.getElementById("brain-score-meta");
+    const brainPartsEl = document.getElementById("brain-score-parts");
+    const brainShareBtn = document.getElementById("brain-score-share");
+    const BRAIN_MIN_GAMES = 2;
+    let brainResult = brainScore({});
+
+    function updateBrainCard() {
+      if (!brainCard) return;
+      brainResult = brainScore(collectBests());
+      const ready = brainResult.played >= BRAIN_MIN_GAMES;
+      brainCard.classList.toggle("is-ready", ready);
+      if (ready) {
+        brainValueEl.textContent = String(brainResult.score);
+        brainMetaEl.textContent = "Brain score " + brainResult.score + " \u00b7 " +
+          brainResult.played + " of " + brainResult.total + " games played";
+      } else {
+        brainValueEl.textContent = "\u2014";
+        const left = BRAIN_MIN_GAMES - brainResult.played;
+        brainMetaEl.textContent = "Play " + left + " more test" + (left === 1 ? "" : "s") +
+          " to get a brain score \u00b7 " + brainResult.played + " of " + brainResult.total + " games played";
+      }
+      brainPartsEl.innerHTML = "";
+      BRAIN_GAMES.forEach(function (g) {
+        const part = brainResult.parts.filter(function (p) { return p.key === g.key; })[0];
+        const li = document.createElement("li");
+        li.className = part ? "brain-part" : "brain-part is-unplayed";
+        const label = document.createElement("span");
+        label.className = "brain-part-label";
+        label.textContent = g.label;
+        const value = document.createElement("span");
+        value.className = "brain-part-value";
+        value.textContent = part ? String(part.best) : "\u2013";
+        li.appendChild(label);
+        li.appendChild(value);
+        brainPartsEl.appendChild(li);
+      });
+      if (brainShareBtn) brainShareBtn.hidden = !ready;
+    }
+
+    initShare("brain-score-share", function () {
+      return brainResult.score === null ? "" : brainShareText(brainResult);
+    });
+    updateBrainCard();
+
     /* ========================= CHIMP TEST ========================= */
 
     (function chimpTool() {
@@ -975,6 +1183,8 @@ if (typeof document !== "undefined") {
       const HISTORY_KEY = "cmt-chimp-history";
       const DIST_KEY = "cmt-chimp-dist";
       const trendEl = document.getElementById("chimp-trend");
+      let lastShare = "";
+      initShare("chimp-share", function () { return lastShare; });
       const START_COUNT = 4;
 
       let count = START_COUNT;
@@ -1064,6 +1274,7 @@ if (typeof document !== "undefined") {
         const priorDist = getDistribution(DIST_KEY);
         const best = Math.max(prevBest, finalCount);
         setBest(BEST_KEY, best);
+        updateBrainCard();
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: finalCount,
           date: new Date().toISOString(),
@@ -1082,6 +1293,7 @@ if (typeof document !== "undefined") {
 
         finalLevelEl.textContent = String(finalCount);
         tierEl.textContent = chimpRatingTier(finalCount);
+        lastShare = gameShareText("chimp", finalCount + " tiles", chimpRatingTier(finalCount));
         renderHistoryList(historyList, history, "tiles");
 
         setTimeout(function () {
@@ -1122,6 +1334,8 @@ if (typeof document !== "undefined") {
       const HISTORY_KEY = "cmt-sequence-history";
       const DIST_KEY = "cmt-sequence-dist";
       const trendEl = document.getElementById("sequence-trend");
+      let lastShare = "";
+      initShare("sequence-share", function () { return lastShare; });
       const GRID_SIZE = 9; // 3x3
       const START_LENGTH = 3;
 
@@ -1212,6 +1426,7 @@ if (typeof document !== "undefined") {
         const priorDist = getDistribution(DIST_KEY);
         const best = Math.max(prevBest, level);
         setBest(BEST_KEY, best);
+        updateBrainCard();
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: level,
           date: new Date().toISOString(),
@@ -1230,6 +1445,7 @@ if (typeof document !== "undefined") {
 
         finalLevelEl.textContent = String(level);
         tierEl.textContent = sequenceRatingTier(level);
+        lastShare = gameShareText("sequence", level + " tiles", sequenceRatingTier(level));
         renderHistoryList(historyList, history, "tiles long");
 
         setTimeout(function () {
@@ -1273,6 +1489,8 @@ if (typeof document !== "undefined") {
       const HISTORY_KEY = "cmt-number-history";
       const DIST_KEY = "cmt-number-dist";
       const trendEl = document.getElementById("number-trend");
+      let lastShare = "";
+      initShare("number-share", function () { return lastShare; });
       const START_LENGTH = 3;
       const REVEAL_MS_BASE = 1200;
       const REVEAL_MS_PER_DIGIT = 350;
@@ -1325,6 +1543,7 @@ if (typeof document !== "undefined") {
         const priorDist = getDistribution(DIST_KEY);
         const best = Math.max(prevBest, lastCompleted);
         setBest(BEST_KEY, best);
+        updateBrainCard();
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: lastCompleted,
           date: new Date().toISOString(),
@@ -1343,6 +1562,7 @@ if (typeof document !== "undefined") {
 
         finalDigitsEl.textContent = String(lastCompleted);
         tierEl.textContent = numberRatingTier(lastCompleted);
+        lastShare = gameShareText("number", lastCompleted + " digits", numberRatingTier(lastCompleted));
         renderHistoryList(historyList, history, "digits");
 
         gamePanel.hidden = true;
@@ -1382,6 +1602,8 @@ if (typeof document !== "undefined") {
       const HISTORY_KEY = "cmt-visual-history";
       const DIST_KEY = "cmt-visual-dist";
       const trendEl = document.getElementById("visual-trend");
+      let lastShare = "";
+      initShare("visual-share", function () { return lastShare; });
       const START_LEVEL = 1;
       const LIVES = 3;
       const FLASH_MS = 900;
@@ -1487,6 +1709,7 @@ if (typeof document !== "undefined") {
         const priorDist = getDistribution(DIST_KEY);
         const best = Math.max(prevBest, reached);
         setBest(BEST_KEY, best);
+        updateBrainCard();
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: reached,
           date: new Date().toISOString(),
@@ -1505,6 +1728,7 @@ if (typeof document !== "undefined") {
 
         finalLevelEl.textContent = String(reached);
         tierEl.textContent = visualRatingTier(reached);
+        lastShare = gameShareText("visual", "level " + reached, visualRatingTier(reached));
         renderHistoryList(historyList, history, "level");
 
         setTimeout(function () {
@@ -1549,6 +1773,8 @@ if (typeof document !== "undefined") {
       const HISTORY_KEY = "cmt-verbal-history";
       const DIST_KEY = "cmt-verbal-dist";
       const trendEl = document.getElementById("verbal-trend");
+      let lastShare = "";
+      initShare("verbal-share", function () { return lastShare; });
       const LIVES = 3;
       const POOL = [
         "apple", "river", "candle", "market", "planet", "shadow", "bridge", "forest",
@@ -1630,6 +1856,7 @@ if (typeof document !== "undefined") {
         const priorDist = getDistribution(DIST_KEY);
         const best = Math.max(prevBest, score);
         setBest(BEST_KEY, best);
+        updateBrainCard();
         const history = pushHistory(getHistory(HISTORY_KEY), {
           score: score,
           date: new Date().toISOString(),
@@ -1648,6 +1875,7 @@ if (typeof document !== "undefined") {
 
         finalScoreEl.textContent = String(score);
         tierEl.textContent = verbalRatingTier(score);
+        lastShare = gameShareText("verbal", score + " words", verbalRatingTier(score));
         renderHistoryList(historyList, history, "words");
 
         setTimeout(function () {
@@ -1693,6 +1921,8 @@ if (typeof document !== "undefined") {
       const restartBtn = document.getElementById("nback-restart");
       const historyList = document.getElementById("nback-history-list");
       const trendEl = document.getElementById("nback-trend");
+      let lastShare = "";
+      initShare("nback-share", function () { return lastShare; });
       const dEl = document.getElementById("nback-final-d");
       const badgeEl = document.getElementById("nback-level-badge");
       const tierEl = document.getElementById("nback-tier");
@@ -2004,6 +2234,7 @@ if (typeof document !== "undefined") {
         try { localStorage.setItem(LEVEL_KEY, String(level)); } catch (e) {}
         const best = Math.max(getBest(BEST_KEY), level);
         setBest(BEST_KEY, best);
+        updateBrainCard();
 
         blockIndex += 1;
         if (blockIndex < BLOCKS_PER_SESSION) {
@@ -2058,6 +2289,7 @@ if (typeof document !== "undefined") {
         dEl.textContent = sessionD.toFixed(2);
         badgeEl.textContent = level + "-back";
         tierEl.textContent = nbackRatingTier(level);
+        lastShare = gameShareText("nback", "d\u2032 " + sessionD.toFixed(2) + " at " + level + "-back", null);
         hitsEl.textContent = totals.hits + " of " + (totals.hits + totals.misses);
         missesEl.textContent = String(totals.misses);
         faEl.textContent = String(totals.falseAlarms);
@@ -2174,5 +2406,10 @@ if (typeof module !== "undefined" && module.exports) {
     nbackDaysBetween: nbackDaysBetween,
     nbackUpdateStreak: nbackUpdateStreak,
     nbackRatingTier: nbackRatingTier,
+    BRAIN_GAMES: BRAIN_GAMES,
+    normalizeScore: normalizeScore,
+    brainScore: brainScore,
+    brainShareText: brainShareText,
+    gameShareText: gameShareText,
   };
 }
