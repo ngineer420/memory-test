@@ -79,6 +79,42 @@ function percentileRank(scores, score) {
   return Math.round(((below + equal / 2) / list.length) * 100);
 }
 
+/* The population percentile comes from assets/js/percentile.js. That file
+   holds a model fitted to the score histograms Human Benchmark publishes, and
+   cites them. The numbers are NOT this site's own visitor data. The site has
+   no backend, so it cannot aggregate one, and nothing rendered from them may
+   imply otherwise. The page loads percentile.js ahead of this script. Under
+   Node it is require()d, so populationNote stays testable. */
+const PERCENTILE =
+  (typeof globalThis !== "undefined" && globalThis.PercentileEngine) ||
+  (typeof require === "function" ? require("./percentile.js") : null);
+
+/**
+ * The sourced population line under a result. Returns null when no published
+ * population exists for the game (n-back) or when the engine is not loaded.
+ *
+ * `score` is what this site reports. The chimp, sequence and number tests
+ * report the last level CLEARED. The source records the level a player was ON
+ * when the game ended, so those three convert with
+ * `reached = max(startLevel, cleared + 1)` before the lookup. The visual and
+ * verbal tests already use the source's convention.
+ */
+function populationNote(gameKey, score) {
+  if (!PERCENTILE || typeof score !== "number" || !isFinite(score)) return null;
+  const model = PERCENTILE.modelForGame(gameKey);
+  if (!model) return null;
+  const converts = gameKey === "chimp" || gameKey === "sequence" || gameKey === "number";
+  const compared = converts ? Math.max(model.startLevel, score + 1) : score;
+  const source = PERCENTILE.SOURCES.filter(function (s) { return s.id === model.source; })[0];
+  return {
+    text: PERCENTILE.comparisonText(compared, model),
+    percentile: PERCENTILE.formatPercentile(PERCENTILE.percentileForScore(compared, model)),
+    compared: compared,
+    n: model.n,
+    source: source || null,
+  };
+}
+
 /**
  * Map a series of scores (oldest first) onto "x,y ..." SVG polyline points
  * inside a `w` x `h` box with `pad` units of breathing room top and bottom.
@@ -948,6 +984,25 @@ if (typeof document !== "undefined") {
         trendEl.appendChild(pb);
       }
 
+      /* First line: where the score sits in a published population. The
+         link goes to the dataset, never to a claim about other visitors. */
+      const note = populationNote(opts.gameKey, opts.score);
+      if (note) {
+        const pop = document.createElement("p");
+        pop.className = "pop-line";
+        pop.appendChild(document.createTextNode(note.text + " "));
+        if (note.source) {
+          const a = document.createElement("a");
+          a.href = note.source.url;
+          a.rel = "noopener";
+          a.target = "_blank";
+          a.textContent = "Source: " + note.n.toLocaleString("en-US") + " saved scores.";
+          pop.appendChild(a);
+        }
+        trendEl.appendChild(pop);
+      }
+
+      /* Second line: the personal percentile, against this device only. */
       const pct = prior.length >= 3 ? percentileRank(prior, opts.score) : null;
       if (pct !== null) {
         const line = document.createElement("p");
@@ -1283,6 +1338,7 @@ if (typeof document !== "undefined") {
         const dist = pushDistribution(priorDist, finalCount);
         setDistribution(DIST_KEY, dist);
         renderTrend(trendEl, {
+          gameKey: "chimp",
           score: finalCount,
           isNewBest: finalCount > prevBest,
           priorDist: priorDist,
@@ -1435,6 +1491,7 @@ if (typeof document !== "undefined") {
         const dist = pushDistribution(priorDist, level);
         setDistribution(DIST_KEY, dist);
         renderTrend(trendEl, {
+          gameKey: "sequence",
           score: level,
           isNewBest: level > prevBest,
           priorDist: priorDist,
@@ -1552,6 +1609,7 @@ if (typeof document !== "undefined") {
         const dist = pushDistribution(priorDist, lastCompleted);
         setDistribution(DIST_KEY, dist);
         renderTrend(trendEl, {
+          gameKey: "number",
           score: lastCompleted,
           isNewBest: lastCompleted > prevBest,
           priorDist: priorDist,
@@ -1718,6 +1776,7 @@ if (typeof document !== "undefined") {
         const dist = pushDistribution(priorDist, reached);
         setDistribution(DIST_KEY, dist);
         renderTrend(trendEl, {
+          gameKey: "visual",
           score: reached,
           isNewBest: reached > prevBest,
           priorDist: priorDist,
@@ -1865,6 +1924,7 @@ if (typeof document !== "undefined") {
         const dist = pushDistribution(priorDist, score);
         setDistribution(DIST_KEY, dist);
         renderTrend(trendEl, {
+          gameKey: "verbal",
           score: score,
           isNewBest: score > prevBest,
           priorDist: priorDist,
@@ -2301,6 +2361,7 @@ if (typeof document !== "undefined") {
           : "Daily streak: " + streak.count + " days.";
 
         renderTrend(trendEl, {
+          gameKey: "nback",
           score: sessionD.toFixed(2),
           isNewBest: priorBestD !== null && sessionD > priorBestD,
           priorDist: priorDist,
@@ -2376,6 +2437,7 @@ if (typeof module !== "undefined" && module.exports) {
     pushHistory: pushHistory,
     pushDistribution: pushDistribution,
     percentileRank: percentileRank,
+    populationNote: populationNote,
     sparklinePoints: sparklinePoints,
     lookupTier: lookupTier,
     chimpGridSize: chimpGridSize,

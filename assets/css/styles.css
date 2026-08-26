@@ -884,6 +884,12 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
   font-weight: 700;
   color: var(--flash);
 }
+.pop-line {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+.pop-line a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 2px; }
 .pct-line {
   margin: 0 0 12px;
   font-size: 13.5px;
