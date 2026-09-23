@@ -1040,6 +1040,32 @@ button.board-cell.tile.wrong-flash { background: var(--danger); color: #fff; }
 .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
 .footer-links a { color: var(--text-dim); }
 
+/* Cross-property links. A row above the legal line, not a replacement for it. */
+.footer-peers {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 20px 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+.footer-peers-label { color: var(--text-faint); }
+.footer-peers ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.footer-peers a { color: var(--text-dim); }
+.footer-peers + .footer-inner { padding-top: 16px; }
+/* 404 carries the peers row alone, with no legal line under it. */
+.site-footer > .footer-peers:last-child { padding-bottom: 32px; }
+
 /* ---------- misc ---------- */
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;

@@ -5,11 +5,11 @@ copies verbatim. Nothing here is computed at runtime by the browser: sync_nav
 renders it into the static HTML of every page.
 
 Tier rule (portfolio spec, ngineer420.github.io#13): a page is tier 1 only if it
-answers a *different question*. All five tests do — Chimp is visuospatial recall
+answers a *different question*. All six tests do — Chimp is visuospatial recall
 of vanished numerals, Sequence is pattern order, Number is digit span, Visual is
-growing-grid spatial recall and Verbal is word recognition. They are peers, not
-one test with a parameter baked in, so there is no tier 2 on this site, no hub
-row and no in-panel sibling chips.
+growing-grid spatial recall, Verbal is word recognition and N-Back is continuous
+updating. They are peers, not one test with a parameter baked in, so there is no
+tier 2 on this site, no hub row and no in-panel sibling chips.
 
 hrefs are the clean extensionless paths the site already publishes in its
 canonicals, sitemap and in-body lists; `canon()` maps `/chimp-test.html` onto
