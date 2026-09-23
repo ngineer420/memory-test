@@ -4,14 +4,67 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How This Memory Test Works (and How Difficulty Scales) — chimpmemory.com</title>
-<meta name="description" content="A look under the hood of all three modes: how scoring, best-score tracking, and history work, and exactly how difficulty ramps up each round in the Chimp Test, Sequence Memory, and Number Memory.">
+<meta name="description" content="How all six tests here work: scoring, best-score tracking, history, and exactly how difficulty ramps up in the Chimp, Sequence, Number, Visual, Verbal and N-Back tests.">
 <link rel="canonical" href="https://chimpmemory.com/articles/how-this-test-works.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="chimpmemory.com">
+<meta property="og:title" content="How This Memory Test Works (and How Difficulty Scales) — chimpmemory.com">
+<meta property="og:description" content="How all six tests here work: scoring, best-score tracking, history, and exactly how difficulty ramps up in the Chimp, Sequence, Number, Visual, Verbal and N-Back tests.">
+<meta property="og:url" content="https://chimpmemory.com/articles/how-this-test-works.html">
 <meta property="og:image" content="https://chimpmemory.com/assets/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/css/styles.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://chimpmemory.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "How This Memory Test Works",
+      "item": "https://chimpmemory.com/articles/how-this-test-works.html"
+    }
+  ]
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "How This Memory Test Works (and How Difficulty Scales)",
+  "description": "How all six tests here work: scoring, best-score tracking, history, and exactly how difficulty ramps up in the Chimp, Sequence, Number, Visual, Verbal and N-Back tests.",
+  "datePublished": "2026-07-16",
+  "dateModified": "2026-09-23",
+  "url": "https://chimpmemory.com/articles/how-this-test-works.html",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://chimpmemory.com/articles/how-this-test-works.html"
+  },
+  "image": "https://chimpmemory.com/assets/og-image.png",
+  "publisher": {
+    "@type": "Organization",
+    "name": "chimpmemory.com",
+    "url": "https://chimpmemory.com/"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "chimpmemory.com",
+    "url": "https://chimpmemory.com/"
+  }
+}
+</script>
+
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7560786263587509" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -66,11 +119,11 @@
 <main id="main" class="container-narrow">
   <h1>How This Memory Test Works (and How Difficulty Scales)</h1>
 
-  <p>All three games on <a href="/">this site</a> — the Chimp Test, Sequence Memory, and Number Memory — share the same underlying design: a small set of pure, deterministic logic functions decide what happens each round, and everything you see on screen is just a rendering of that logic. This page walks through exactly how each mode generates its rounds, scores your performance, and scales difficulty as you improve.</p>
+  <p>All six tests on <a href="/">this site</a> — the Chimp Test, Sequence Memory, Number Memory, Visual Memory, Verbal Memory and the <a href="/n-back-test">N-Back Test</a> — share the same underlying design: a small set of pure, deterministic logic functions decide what happens each round, and everything you see on screen is just a rendering of that logic. This page walks through exactly how each test generates its rounds, scores your performance, and scales difficulty as you improve.</p>
 
   <h2>The shared foundations: history and tiers</h2>
-  <p>Every mode keeps two pieces of state in your browser's <code>localStorage</code>: a single best score, and a rolling history of your last 10 attempts, each stored with a score and a timestamp. When a round ends, the new result is pushed onto the front of the history array and the list is capped at 10 entries — older attempts simply roll off the end. Nothing is ever uploaded anywhere; the storage keys (like <code>cmt-chimp-best</code> or <code>cmt-number-history</code>) live only in your browser, on your device, which is also why clearing your browser data resets your progress.</p>
-  <p>After every round, your score is looked up against an ordered list of score ranges — a &ldquo;tier table&rdquo; — to produce the rating text you see (&ldquo;Sharp memory,&rdquo; &ldquo;Chimp-level or better,&rdquo; and so on). Each mode has its own table tuned to that mode's typical score range, but the lookup mechanism is identical: walk the list in order and return the label attached to the first range your score falls inside.</p>
+  <p>Every test keeps two pieces of state in your browser's <code>localStorage</code>: a single best score, and a rolling history of your last 10 attempts, each stored with a score and a timestamp. When a round ends, the new result is pushed onto the front of the history array and the list is capped at 10 entries — older attempts simply roll off the end. Nothing is ever uploaded anywhere; the storage keys (like <code>cmt-chimp-best</code> or <code>cmt-number-history</code>) live only in your browser, on your device, which is also why clearing your browser data resets your progress.</p>
+  <p>After every round, your score is looked up against an ordered list of score ranges — a &ldquo;tier table&rdquo; — to produce the rating text you see (&ldquo;Sharp memory,&rdquo; &ldquo;Chimp-level or better,&rdquo; and so on). Each test has its own table tuned to that test's typical score range, but the lookup mechanism is identical: walk the list in order and return the label attached to the first range your score falls inside.</p>
 
   <h2>Chimp Test: layout generation and grid scaling</h2>
   <p>The Chimp Test starts each session at 4 tiles and adds exactly one more tile after every successfully completed round — there's no cap, so a long streak keeps climbing indefinitely until you misclick. Before each round, the board size is decided based on how many tiles need to fit: the grid always keeps at least a handful of empty cells so the numbered tiles aren't crammed edge to edge, using roughly the smallest square-ish grid that comfortably holds the tile count plus a margin of blank cells. As your tile count grows, the grid grows with it, which is part of why later rounds feel harder in two ways at once — more numbers to remember, spread across more possible positions.</p>
@@ -84,20 +137,43 @@
   <p>Number Memory starts at 3 digits and, like the other two modes, adds one digit each time you answer correctly. The number itself is generated digit by digit at random, with one small rule: the very first digit is never zero, so a 4-digit round always looks like a genuine 4-digit number rather than one with a leading zero that would visually read as shorter.</p>
   <p>The interesting scaling detail is the reveal timer. Longer numbers are shown on screen for longer — the reveal duration is a fixed base amount of time plus an additional stretch of time for every extra digit in that round. This is deliberate: giving a 3-digit round and a 12-digit round the identical half-second flash would make the longer rounds nearly impossible regardless of skill, while giving every round the same generous multi-second window would make short rounds trivially easy. Scaling the reveal time with digit count keeps the actual difficulty curve tied to memory capacity rather than to display speed. Once the reveal window closes, the number is replaced with masked dots and an input field appears; your typed answer is compared against the target as plain text (after trimming stray whitespace), and any mismatch — including getting the digit count wrong — ends the round.</p>
 
+  <h2>Visual Memory: a grid that grows under you</h2>
+  <p>Visual Memory flashes a set of tiles, then asks you to click exactly those tiles on a blank board. Two things scale at once. The number of tiles that flash is the level plus two, so level 1 flashes three tiles. The board is a square whose side gains one cell every three levels, starting at 3&times;3 and stopping at 7&times;7. The lit cells themselves are chosen by shuffling every cell on the board and taking the first however-many the level needs, and the count is clamped so it can never exceed the number of cells available.</p>
+  <p>Because both the tile count and the board area grow, later levels get harder in two directions at the same time: more positions to hold, spread over more places they could be. Unlike the Chimp Test, one mistake does not end the run — you have three lives, and your score is the level you reached when the last one went.</p>
+
+  <h2>Verbal Memory: a pool that repeats on purpose</h2>
+  <p>Verbal Memory shows one word at a time and asks whether you have seen it before in this run. The choice of word is the whole mechanic. Each turn the test decides between a word you have already been shown and a fresh word from the pool, and it picks the repeat about 42 percent of the time. Two rules override that coin flip: nothing can repeat before anything has been shown, and once the pool of fresh words runs out every remaining word must be a repeat. That is why a long run gets steadily harder without any timer or any change of rules — the list you have to hold simply keeps growing.</p>
+  <p>Scoring is a plain comparison: your SEEN or NEW call is checked against whether the word really was shown before. A wrong call in either direction costs one of three lives, so calling everything SEEN fails as fast as calling everything NEW. Your score is the number of words you got through.</p>
+
+  <h2>N-Back: the one test that is not a ladder</h2>
+  <p>The <a href="/n-back-test">N-Back Test</a> is built differently from the other five, and it is worth understanding why. A session is three blocks of about twenty scored trials. A square lights somewhere on a 3&times;3 grid every few seconds, and you press Match when it lands where it was <em>n</em> steps ago. About 30 percent of the scored trials are targets. The first <em>n</em> trials of each block have nothing behind them to compare against, so they are dealt but never scored.</p>
+  <p>The sequence is built target-first: the test picks which scorable trials will be targets, copies the cell from <em>n</em> back into each of them, and then fills every remaining trial with anything except the cell <em>n</em> back, so a near miss can never become a target by accident. The board for a given day, rung and block comes from a seed mixed out of those three values, which is why refreshing the page cannot reroll a session into something easier.</p>
+  <p>Scoring is the real difference. On a stream where most trials are not targets, percent correct is a broken measure — press nothing at all and you still score about 70 percent. So the test counts hits, misses, false alarms and correct rejections separately, and derives d-prime from the hit and false-alarm rates. Both rates get the log-linear correction (Hautus 1995), which adds half a trial to each count and a whole trial to each total every time, not only at the extremes, so the scale has no step in it where people are trying to improve. One case is handled apart: a player who presses on every trial, or on none of them, has shown no discrimination at all, and that reports a d-prime of exactly 0 rather than an artefact of the two totals differing in size.</p>
+  <p>The level moves on its own instead of ending the run. Three clean blocks in a row — every target caught, no false alarms — moves you up one rung. Two missed targets inside a single block moves you down one, and the rung never falls below 1. Your rung is remembered between visits, so the task keeps sitting just past what you can comfortably do.</p>
+
   <h2>Why the logic lives separately from the page</h2>
-  <p>All of the scoring and generation functions described above — the grid-sizing math, the click-checking logic, the sequence and number generation, the tier lookups — are written as small, self-contained functions with no dependency on the browser's <code>document</code> object. That separation exists so the core game logic can be sanity-checked independently of any on-screen rendering, the same way you'd test a calculator's math without needing to render its display. The DOM-handling code — building the tile grid, wiring up click handlers, updating the on-screen level and best-score readouts — sits in a clearly separated section that only runs once an actual page has loaded, and it's a thin layer on top of the logic above rather than something that duplicates it.</p>
-  <p>If you're wondering how your own scores compare to typical results, see our <a href="/articles/what-is-a-good-memory-score.html">guide to realistic benchmarks</a> for all three modes. If you'd like to actually raise your scores rather than just understand them, our <a href="/articles/how-to-improve-working-memory.html">guide to improving working memory</a> covers techniques that meaningfully help. And if you're curious where the Chimp Test's name and format actually came from, <a href="/articles/history-of-the-chimp-memory-test.html">the real research behind it</a> is worth a read.</p>
+  <p>All of the scoring and generation functions described above — the grid-sizing math, the click-checking logic, the sequence, number and n-back generation, the d-prime calculation, the tier lookups — are written as small, self-contained functions with no dependency on the browser's <code>document</code> object. That separation exists so the core game logic can be sanity-checked independently of any on-screen rendering, the same way you'd test a calculator's math without needing to render its display. The DOM-handling code — building the tile grid, wiring up click handlers, updating the on-screen level and best-score readouts — sits in a clearly separated section that only runs once an actual page has loaded, and it's a thin layer on top of the logic above rather than something that duplicates it.</p>
+  <p>If you're wondering how your own scores compare to typical results, see our <a href="/articles/what-is-a-good-memory-score.html">guide to realistic benchmarks</a> for all six tests. If you'd like to actually raise your scores rather than just understand them, our <a href="/articles/how-to-improve-working-memory.html">guide to improving working memory</a> covers techniques that meaningfully help. And if you're curious where the Chimp Test's name and format actually came from, <a href="/articles/history-of-the-chimp-memory-test.html">the real research behind it</a> is worth a read.</p>
   <p>Otherwise, the best way to understand any of this is to watch it happen: <a href="/">play a round</a> and pay attention to how the grid or reveal window changes as your streak grows.</p>
 
   <h2>Keep reading</h2>
   <ul>
-    <li><a href="/articles/what-is-a-good-memory-score.html">What's a good memory score? Realistic benchmarks for all three modes</a></li>
+    <li><a href="/articles/what-is-a-good-memory-score.html">What's a good memory score? Realistic benchmarks for all six tests</a></li>
     <li><a href="/articles/how-to-improve-working-memory.html">How to improve your working memory: chunking, visualization, and realistic expectations</a></li>
     <li><a href="/articles/history-of-the-chimp-memory-test.html">The history of the Chimp Memory Test: Ayumu, Kyoto University, and the eidetic memory debate</a></li>
     <li><a href="/">Take the memory test</a></li>
   </ul>
 </main>
 <footer class="site-footer">
+  <nav class="footer-peers" aria-label="Related tools">
+    <span class="footer-peers-label">Related tools</span>
+    <ul>
+      <li><a href="https://reflexzap.com" rel="noopener">Reaction time test</a></li>
+      <li><a href="https://flicktrainer.com" rel="noopener">Aim training</a></li>
+      <li><a href="https://wpmflex.com" rel="noopener">Typing speed test</a></li>
+      <li><a href="https://clocklab.net" rel="noopener">Timers and clocks</a></li>
+    </ul>
+  </nav>
   <div class="footer-inner">
     <div>© <span id="year"></span> chimpmemory.com</div>
     <div class="footer-links">
