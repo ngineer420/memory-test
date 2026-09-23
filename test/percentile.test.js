@@ -349,3 +349,65 @@ test("every test page loads percentile.js ahead of app.js", () => {
   }
   assert.ok(checked > 0, "expected at least one test page");
 });
+
+/* ================ the privacy policy points at something real ================
+
+   Every privacy policy on this site used to end with "Questions about this
+   policy can be sent to the site owner via the contact link in the footer."
+   There was no contact link in any footer, so the sentence was false from the
+   day it was written. It is now true, and this is what keeps it true.
+
+   The address is written with HTML numeric character references, so the source
+   bytes carry no plain address for a crawler to grep. A browser decodes them
+   while parsing, which is why the assertion decodes them too. */
+
+const CONTACT = "hello@goodbotbad.bot";
+
+function decodeEntities(text) {
+  return text.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+}
+
+function everyPage(dir = REPO, base = "") {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
+    const abs = path.join(dir, entry.name);
+    const rel = base ? `${base}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) out.push(...everyPage(abs, rel));
+    else if (entry.name.endsWith(".html")) out.push(rel);
+  }
+  return out.sort();
+}
+
+test("every footer carries a working contact link", () => {
+  for (const rel of everyPage()) {
+    const html = fs.readFileSync(path.join(REPO, rel), "utf8");
+    const footer = (html.match(/<div class="footer-links">[\s\S]*?<\/div>/) || [])[0];
+    assert.ok(footer, `${rel} has no footer-links block`);
+    const decoded = decodeEntities(footer);
+    assert.ok(decoded.includes(`mailto:${CONTACT}`), `${rel}: no contact link in the footer`);
+    assert.ok(/>Contact</.test(decoded), `${rel}: the contact link is not labelled`);
+  }
+});
+
+test("the address is not sitting in the source as plain text", () => {
+  // Light obfuscation only. It stops a crawler that greps the HTML. It does not
+  // pretend to stop one that runs a browser, and it must never cost a real
+  // visitor the link.
+  for (const rel of everyPage()) {
+    const html = fs.readFileSync(path.join(REPO, rel), "utf8");
+    assert.ok(!html.includes(`mailto:${CONTACT}`), `${rel}: plain mailto in the source`);
+    assert.ok(!html.includes(CONTACT), `${rel}: plain address in the source`);
+  }
+});
+
+test("the privacy policy's contact claim is accurate", () => {
+  const html = fs.readFileSync(path.join(REPO, "privacy.html"), "utf8");
+  const section = (html.match(/<h2>Contact<\/h2>[\s\S]*?<\/p>/) || [""])[0];
+  const plain = decodeEntities(section.replace(/<[^>]+>/g, " "));
+  assert.ok(plain.includes(CONTACT), "the policy does not name the address");
+  assert.ok(/footer/i.test(plain), "the policy does not mention the footer");
+  // The sentence claims the link is in the footer of every page. It has to be.
+  assert.ok(!/contact link in the footer\.\s*<\/p>/.test(html),
+    "the old sentence, which pointed at a link that did not exist, is back");
+});
